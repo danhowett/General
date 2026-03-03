@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Incident Lifecycle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #58a6ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    max-width: 1100px;
+    margin: 0 auto 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+
+  .page-header .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+
+  .header-pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .phase-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .pill-attack   { background: rgba(231,76,60,0.15);  color: #ff7b72; border: 1px solid rgba(231,76,60,0.35); }
+  .pill-response { background: rgba(46,204,113,0.15); color: #3fb950; border: 1px solid rgba(46,204,113,0.35); }
+  .pill-ir       { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.35); }
+
+  /* ── WRAP ── */
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    margin-top: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── LIFECYCLE TRACK ── */
+  .lifecycle-track { display: flex; flex-direction: column; gap: 0; }
+
+  .phase-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 28px 0;
+  }
+
+  .phase-divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+
+  .phase-divider-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .divider-response { color: #3fb950; border: 1px solid rgba(46,204,113,0.3); background: rgba(46,204,113,0.08); }
+
+  /* ── PHASE ROW ── */
+  .phase-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+    cursor: pointer;
+    position: relative;
+    opacity: 0;
+    animation: fadeUp 0.4s ease forwards;
+    margin-bottom: 8px;
+  }
+
+  .phase-num-wrap {
+    flex-shrink: 0;
+    width: 44px;
+    padding-top: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* vertical connector */
+  .phase-row:not(:last-child) .connector {
+    position: absolute;
+    left: 21px;
+    top: 44px;
+    width: 2px;
+    background: var(--border);
+    bottom: -8px;
+    z-index: 0;
+    transition: background 0.25s, opacity 0.25s;
+  }
+
+  .phase-row.active .connector,
+  .phase-row:hover .connector { background: var(--phase-color); opacity: 0.4; }
+
+  /* number badge */
+  .phase-num {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    flex-shrink: 0;
+    border: 2px solid var(--phase-color);
+    color: var(--phase-color);
+    background: var(--bg);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    position: relative;
+    z-index: 1;
+  }
+
+  .phase-row:hover .phase-num,
+  .phase-row.active .phase-num {
+    background: var(--phase-color);
+    color: #0d1117;
+    box-shadow: 0 0 22px color-mix(in srgb, var(--phase-color) 45%, transparent);
+  }
+
+  /* ── PHASE CARD ── */
+  .phase-card { display: flex; flex-direction: column; margin-bottom: 6px; flex: 1; min-width: 0; }
+
+  .phase-header {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color 0.2s, background 0.2s, border-radius 0.25s;
+  }
+
+  .phase-row.active .phase-header {
+    border-radius: 8px 8px 0 0;
+    border-bottom-color: transparent;
+  }
+
+  .phase-row:hover .phase-header,
+  .phase-row.active .phase-header {
+    border-color: var(--phase-color);
+    background: var(--surface2);
+  }
+
+  .phase-row.active .phase-header { border-bottom-color: transparent; }
+
+  .phase-header-left { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+
+  .phase-title-row { display: flex; align-items: center; gap: 10px; }
+
+  .phase-cat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .cat-attack   { color: #ff7b72; background: rgba(231,76,60,0.1);  border: 1px solid rgba(231,76,60,0.25); }
+  .cat-response { color: #3fb950; background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.25); }
+
+  .phase-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.1px;
+  }
+
+  /* description always on its own line — this is the fix */
+  .phase-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .phase-toggle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    color: var(--muted);
+    transition: transform 0.25s, color 0.2s;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .phase-row.active .phase-toggle {
+    transform: rotate(45deg);
+    color: var(--phase-color);
+  }
+
+  /* ── EXPANDED BODY ── */
+  .phase-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .phase-row.active .phase-body { max-height: 700px; }
+
+  .phase-body-inner {
+    border: 1px solid var(--phase-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    background: var(--surface);
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .phase-body-inner { grid-template-columns: 1fr; }
+  }
+
+  .body-col h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .body-col ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+  .body-col ul li {
+    font-size: 12.5px;
+    color: rgba(230,237,243,0.85);
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+
+  .body-col ul li::before {
+    content: '›';
+    color: var(--phase-color);
+    font-size: 14px;
+    margin-top: -1px;
+    flex-shrink: 0;
+  }
+
+  /* ── 6-STEP IR PROCESS ── */
+  .ir-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    .ir-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (max-width: 500px) {
+    .ir-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .ir-step {
+    padding: 22px 18px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    transition: background 0.15s;
+    cursor: default;
+  }
+
+  .ir-step:last-child { border-right: none; }
+  .ir-step:hover { background: var(--surface2); }
+
+  /* arrow connector between steps */
+  .ir-step:not(:last-child)::after {
+    content: '›';
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--border);
+    z-index: 2;
+    background: var(--surface);
+    line-height: 1;
+  }
+
+  .ir-step:hover::after { color: var(--muted); background: var(--surface2); }
+
+  .ir-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .ir-icon {
+    font-size: 24px;
+    line-height: 1;
+    margin: 2px 0 4px;
+  }
+
+  .ir-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .ir-tagline {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+    font-style: italic;
+  }
+
+  .ir-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .ir-bullets li {
+    font-size: 11.5px;
+    color: rgba(230,237,243,0.8);
+    line-height: 1.35;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .ir-bullets li::before {
+    content: '·';
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .ir-step:nth-child(1) .ir-num,
+  .ir-step:nth-child(1) .ir-bullets li::before { color: #ff6b35; }
+  .ir-step:nth-child(2) .ir-num,
+  .ir-step:nth-child(2) .ir-bullets li::before { color: #f7c948; }
+  .ir-step:nth-child(3) .ir-num,
+  .ir-step:nth-child(3) .ir-bullets li::before { color: #3498db; }
+  .ir-step:nth-child(4) .ir-num,
+  .ir-step:nth-child(4) .ir-bullets li::before { color: #1abc9c; }
+  .ir-step:nth-child(5) .ir-num,
+  .ir-step:nth-child(5) .ir-bullets li::before { color: #2ecc71; }
+  .ir-step:nth-child(6) .ir-num,
+  .ir-step:nth-child(6) .ir-bullets li::before { color: #58a6ff; }
+
+  .ir-step:nth-child(1) { border-top: 3px solid #ff6b35; }
+  .ir-step:nth-child(2) { border-top: 3px solid #f7c948; }
+  .ir-step:nth-child(3) { border-top: 3px solid #3498db; }
+  .ir-step:nth-child(4) { border-top: 3px solid #1abc9c; }
+  .ir-step:nth-child(5) { border-top: 3px solid #2ecc71; }
+  .ir-step:nth-child(6) { border-top: 3px solid #58a6ff; }
+
+  /* time pressure bar */
+  .ir-time {
+    margin-top: auto;
+    padding-top: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── NIST CALLOUT ── */
+  .callout {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .callout strong { color: var(--text); font-weight: 600; }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    max-width: 1100px;
+    margin: 52px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>Cyber Incident Lifecycle</h1>
+    <div class="subtitle">// attack chain · response phases · IR process — click any phase to expand</div>
+  </div>
+  <div class="header-pills">
+    <span class="phase-pill pill-attack">Attack Chain</span>
+    <span class="phase-pill pill-response">Response</span>
+    <span class="phase-pill pill-ir">IR Process</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── 6-STEP IR PROCESS ── -->
+  <div class="section-label">6-Step Incident Response Process (NIST SP 800-61)</div>
+
+  <div class="ir-grid">
+
+    <div class="ir-step">
+      <div class="ir-num">01</div>
+      <div class="ir-icon">🔍</div>
+      <div class="ir-name">Preparation</div>
+      <div class="ir-tagline">Before the breach — build the muscle memory</div>
+      <ul class="ir-bullets">
+        <li>IR plan documented and tested</li>
+        <li>Roles and responsibilities defined</li>
+        <li>Tabletop exercises run regularly</li>
+        <li>Tools and access provisioned in advance</li>
+        <li>Communication trees established</li>
+        <li>Legal, comms, DPO contacts ready</li>
+      </ul>
+      <div class="ir-time">⏱ Ongoing</div>
+    </div>
+
+    <div class="ir-step">
+      <div class="ir-num">02</div>
+      <div class="ir-icon">🚨</div>
+      <div class="ir-name">Detection &amp; Analysis</div>
+      <div class="ir-tagline">Something's wrong — understand what and how bad</div>
+      <ul class="ir-bullets">
+        <li>Validate the alert is real (not false positive)</li>
+        <li>Classify severity and incident type</li>
+        <li>Identify patient zero and entry vector</li>
+        <li>Preserve evidence immediately</li>
+        <li>Notify incident commander and stakeholders</li>
+        <li>Open incident log and timeline</li>
+      </ul>
+      <div class="ir-time">⏱ Minutes to hours</div>
+    </div>
+
+    <div class="ir-step">
+      <div class="ir-num">03</div>
+      <div class="ir-icon">🔒</div>
+      <div class="ir-name">Containment</div>
+      <div class="ir-tagline">Stop the spread — isolate without destroying evidence</div>
+      <ul class="ir-bullets">
+        <li>Short-term: isolate affected hosts</li>
+        <li>Block C2 IPs and malicious domains</li>
+        <li>Disable compromised accounts</li>
+        <li>Long-term: segment network</li>
+        <li>Notify legal re: evidence handling</li>
+        <li>Start ICO 72-hr clock if data breached</li>
+      </ul>
+      <div class="ir-time">⏱ Hours to days</div>
+    </div>
+
+    <div class="ir-step">
+      <div class="ir-num">04</div>
+      <div class="ir-icon">🧹</div>
+      <div class="ir-name">Eradication</div>
+      <div class="ir-tagline">Remove the attacker — completely, not partially</div>
+      <ul class="ir-bullets">
+        <li>Remove malware and all persistence mechanisms</li>
+        <li>Patch or close the initial access vector</li>
+        <li>Reset all compromised credentials</li>
+        <li>Rebuild from clean golden images</li>
+        <li>Verify no backdoors or web shells remain</li>
+        <li>Confirm attacker has no remaining access</li>
+      </ul>
+      <div class="ir-time">⏱ Hours to days</div>
+    </div>
+
+    <div class="ir-step">
+      <div class="ir-num">05</div>
+      <div class="ir-icon">🔄</div>
+      <div class="ir-name">Recovery</div>
+      <div class="ir-tagline">Restore operations — carefully and monitored</div>
+      <ul class="ir-bullets">
+        <li>Restore from verified clean backups</li>
+        <li>Staggered reconnection to network</li>
+        <li>Heightened monitoring post-recovery</li>
+        <li>Test systems before returning to production</li>
+        <li>Validate backup integrity before relying on it</li>
+        <li>Update stakeholders and close comms loop</li>
+      </ul>
+      <div class="ir-time">⏱ Days to weeks</div>
+    </div>
+
+    <div class="ir-step">
+      <div class="ir-num">06</div>
+      <div class="ir-icon">📋</div>
+      <div class="ir-name">Post-Incident Review</div>
+      <div class="ir-tagline">Learn and improve — the most skipped step</div>
+      <ul class="ir-bullets">
+        <li>Full timeline and root cause documented</li>
+        <li>Detection gaps identified</li>
+        <li>Playbooks updated based on findings</li>
+        <li>Actions assigned with owners and dates</li>
+        <li>Regulatory reporting completed</li>
+        <li>Lessons fed into next tabletop exercise</li>
+      </ul>
+      <div class="ir-time">⏱ Within 2 weeks</div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    The 6-step process maps to <strong>NIST SP 800-61 Rev 2</strong> and is aligned with <strong>NCSC Incident Management guidance</strong>. 
+    Steps 1–2 happen before and at the start of an incident. Steps 3–5 are the active response. Step 6 closes the loop — 
+    it's the phase most organisations skip under time pressure, and the one that most determines long-term resilience. 
+    <strong>Preparation (step 1) is the force multiplier</strong>: every hour invested before an incident saves ten during one.
+  </div>
+
+  <!-- ── LIFECYCLE TRACK ── -->
+  <div class="section-label">Full Attack & Response Lifecycle — click any phase to expand</div>
+  <div class="lifecycle-track" id="track"></div>
+
+  <div class="callout" style="margin-top:32px;">
+    The attack phases map to the <strong>MITRE ATT&CK framework</strong> and the Lockheed Martin <strong>Cyber Kill Chain</strong>.
+    The response phases align with <strong>NIST SP 800-61</strong> and <strong>NCSC Incident Management guidance</strong>. 
+    Understanding both chains together is what turns reactive firefighting into a structured, repeatable response capability.
+  </div>
+
+</div>
+
+<div class="page-footer">
+  <span>// cyber incident lifecycle — v2.0</span>
+  <span>MITRE ATT&CK · NIST SP 800-61 · NCSC Incident Management</span>
+</div>
+
+<script>
+const phases = [
+  {
+    num: "01", name: "Reconnaissance", color: "#ff6b35", cat: "attack",
+    desc: "Attacker researches the target — gathering intel on people, systems, infrastructure, and vulnerabilities before making any move.",
+    col1: { head: "Attacker Tactics", items: ["OSINT via LinkedIn, social media, company site", "DNS enumeration and subdomain scanning", "Shodan / Censys for exposed services", "Phishing tests to map responsive targets", "Job listings to identify tech stack"] },
+    col2: { head: "Indicators to Watch", items: ["Unusual port scanning from external IPs", "Increased DNS queries for company domains", "Scraping of website at unusual scale", "Contact form abuse or directory guessing", "Employees targeted on professional networks"] },
+    col3: { head: "Defensive Controls", items: ["Monitor for external scanning at perimeter", "Limit public exposure of internal tech stack", "Dark web and brand monitoring service", "Review what's visible on Shodan for your IP ranges", "Employee awareness of social engineering"] }
+  },
+  {
+    num: "02", name: "Weaponisation", color: "#f7c948", cat: "attack",
+    desc: "Attacker packages the exploit — creating a payload tailored to the target's environment. This phase is invisible to defenders; it happens entirely on attacker infrastructure.",
+    col1: { head: "Attacker Tactics", items: ["Building malicious Office macros or PDFs", "Crafting spear phishing lure documents", "Packaging exploit with C2 callback built in", "Trojanising legitimate software", "Creating fake login portals for credential harvest"] },
+    col2: { head: "Indicators to Watch", items: ["Largely undetectable — happens off your estate", "Threat intel feeds may flag new malware variants", "Dark web chatter about specific organisations", "New phishing infrastructure registered near your domain", "Certificate transparency logs for lookalike domains"] },
+    col3: { head: "Defensive Controls", items: ["Subscribe to threat intel feeds (NCSC, CISP)", "Engage a threat intelligence partner", "Monitor for lookalike domain registrations", "Certificate transparency monitoring", "Ensure EDR has up-to-date behavioural signatures"] }
+  },
+  {
+    num: "03", name: "Delivery", color: "#e74c3c", cat: "attack",
+    desc: "The payload reaches the target — most commonly via phishing email, malicious website, or a compromised supply chain component.",
+    col1: { head: "Attacker Tactics", items: ["Spear phishing with malicious attachment", "Watering hole attack on trusted sector website", "USB drop in car park or reception", "Compromised third-party software update", "Malvertising or drive-by download"] },
+    col2: { head: "Indicators to Watch", items: ["Suspicious email with unusual attachment type", "Link to newly registered or typosquatted domain", "Unexpected software download initiated by host", "Email from spoofed or lookalike sender domain", "User reports something 'felt off' about an email"] },
+    col3: { head: "Defensive Controls", items: ["Email gateway with DMARC, DKIM, SPF enforcement", "Web proxy blocking newly registered domains", "User awareness training — report suspicious emails", "Disable autorun on USB devices via Group Policy", "Application control to block untrusted executables"] }
+  },
+  {
+    num: "04", name: "Exploitation", color: "#9b59b6", cat: "attack",
+    desc: "The payload executes — exploiting a vulnerability, tricking a user, or abusing legitimate software to gain initial access to the environment.",
+    col1: { head: "Attacker Tactics", items: ["User opens attachment — macro executes payload", "Exploit kit targets unpatched browser or plugin", "SQL injection on exposed web application", "Credential stuffing on internet-facing login portal", "RDP brute force on exposed remote access service"] },
+    col2: { head: "Indicators to Watch", items: ["Unexpected process spawned from Office application", "EDR alert fires on suspicious execution", "Failed login spike followed by a success", "Unusual parent/child process relationship in logs", "Exploit patterns in web application firewall logs"] },
+    col3: { head: "Defensive Controls", items: ["EDR with behavioural detection (not just signatures)", "Application whitelisting to block unexpected execution", "Prioritised patching of internet-facing systems", "Web application firewall (WAF) with tuned ruleset", "MFA on all externally accessible services"] }
+  },
+  {
+    num: "05", name: "Installation", color: "#e91e63", cat: "attack",
+    desc: "Attacker establishes persistence — ensuring they survive reboots, credential resets, and initial detection attempts.",
+    col1: { head: "Attacker Tactics", items: ["Malware written to disk with persistence mechanism", "Registry run keys or scheduled tasks created", "Backdoor or rogue account created in Active Directory", "Web shell installed on compromised web server", "Boot sector modification (rootkit)"] },
+    col2: { head: "Indicators to Watch", items: ["New scheduled tasks or services created unexpectedly", "Registry modifications in Run / RunOnce keys", "New local admin accounts appearing without change ticket", "Unexpected files in startup directories or AppData", "Web shell signatures in web server access logs"] },
+    col3: { head: "Defensive Controls", items: ["Alert on new scheduled tasks and services", "Privileged account monitoring with alerting", "File integrity monitoring on critical system paths", "Regular review of local administrator accounts", "Immutable logging to detect and prevent tampering"] }
+  },
+  {
+    num: "06", name: "Command & Control (C2)", color: "#00bcd4", cat: "attack",
+    desc: "Attacker opens a communication channel back to their infrastructure — enabling remote control, data staging, and further instruction.",
+    col1: { head: "Attacker Tactics", items: ["HTTPS C2 over legitimate cloud services (Teams, Dropbox)", "DNS tunnelling to exfiltrate data covertly", "Domain fronting to evade egress inspection", "Low-and-slow beaconing to avoid detection thresholds", "Tor or VPN to obscure origin"] },
+    col2: { head: "Indicators to Watch", items: ["Regular beaconing to unusual or new external IPs", "DNS queries to algorithmically generated domains (DGA)", "Large outbound volumes at unusual hours", "Connections to known C2 infrastructure (via threat intel)", "Encrypted traffic from unexpected hosts to cloud services"] },
+    col3: { head: "Defensive Controls", items: ["Protective DNS / NCSC PDNS service", "Network traffic baseline and anomaly alerting", "Block known malicious IPs and C2 domains", "Egress filtering — restrict unexpected outbound ports", "NDR / NTA solution for full traffic visibility"] }
+  },
+  {
+    num: "07", name: "Actions on Objective", color: "#ff5722", cat: "attack",
+    desc: "Attacker achieves their goal — whether data theft, encryption for ransom, sabotage, or establishing long-term persistent access.",
+    col1: { head: "Attacker Tactics", items: ["Mass data exfiltration to cloud storage or FTP", "Ransomware encryption across network shares", "Credential harvesting from AD (DCSync, LSASS dump)", "Lateral movement to reach crown-jewel systems", "Destruction of backups before ransomware detonation"] },
+    col2: { head: "Indicators to Watch", items: ["Large file transfers to external cloud or FTP", "Mass file renaming or extension change (ransomware)", "DCSync or LSASS dump detected by EDR", "Backup deletion or VSS shadow copy removal", "Lateral movement via PsExec, WMI, or RDP"] },
+    col3: { head: "Defensive Controls", items: ["Network segmentation to contain lateral movement", "Immutable, offline backups that can't be encrypted", "Privileged access workstations for admin activity", "DLP to detect and block mass data staging", "Honeypot files to trigger early ransomware detection"] }
+  },
+
+  { type: "divider" },
+
+  {
+    num: "08", name: "Detection & Analysis", color: "#2ecc71", cat: "response",
+    desc: "The incident is identified — by automated tooling, a user report, or external notification. Speed and accuracy here sets the tempo for everything that follows.",
+    col1: { head: "Key Activities", items: ["Validate the alert — is this a real incident?", "Classify severity and incident type", "Identify patient zero and initial infection vector", "Preserve forensic evidence — don't overwrite logs", "Invoke IR plan and notify incident commander"] },
+    col2: { head: "Key Decisions", items: ["What is the scope and blast radius?", "Do we need external IR support?", "When do we notify leadership?", "Is data involved — does GDPR clock start?", "Do we notify law enforcement?"] },
+    col3: { head: "Capabilities Needed", items: ["24/7 SOC or on-call analyst coverage", "SIEM with documented correlation rules", "Defined severity classification matrix", "Forensic readiness — evidence preservation procedures", "Clear escalation paths and call trees"] }
+  },
+  {
+    num: "09", name: "Containment", color: "#3498db", cat: "response",
+    desc: "Stop the bleeding — isolate affected systems to prevent the attacker spreading further, without destroying evidence needed for investigation.",
+    col1: { head: "Key Activities", items: ["Isolate affected hosts via EDR kill switch", "Block C2 IPs and malicious domains at perimeter", "Disable or reset compromised user accounts", "Apply network segmentation to limit blast radius", "Preserve forensic images before any remediation"] },
+    col2: { head: "Key Decisions", items: ["Isolate now vs. monitor to understand full scope?", "Which systems are safe to keep running?", "Is out-of-band comms needed (email compromised)?", "Notify ICO / regulators — 72-hour GDPR clock", "Cyber insurance notification required?"] },
+    col3: { head: "Capabilities Needed", items: ["EDR with remote host isolation capability", "Network micro-segmentation or VLAN controls", "Out-of-band communication channel (Teams, Signal)", "Legal team engaged early for evidence chain of custody", "DPO and compliance team on standby"] }
+  },
+  {
+    num: "10", name: "Eradication & Recovery", color: "#1abc9c", cat: "response",
+    desc: "Remove the attacker completely and restore systems to a known-good state — ensuring the root cause is fixed, not just the symptom.",
+    col1: { head: "Key Activities", items: ["Remove all malware and persistence mechanisms", "Rebuild compromised systems from clean golden images", "Reset all potentially compromised credentials at scale", "Patch the vulnerability or close the misconfiguration", "Restore from verified, clean, tested backups"] },
+    col2: { head: "Key Decisions", items: ["Rebuild vs. remediate — when is rebuild the safer call?", "Which order do systems come back up?", "How do we validate clean before reconnecting?", "Stagger reconnection and monitor closely", "When is 'normal operations' genuinely safe to declare?"] },
+    col3: { head: "Capabilities Needed", items: ["Tested backup and DR procedures (not just documented)", "Golden image library for rapid system rebuild", "Credential reset procedures that scale under pressure", "Vulnerability management to validate the fix", "Heightened monitoring tooling post-recovery"] }
+  },
+  {
+    num: "11", name: "Post-Incident Review", color: "#58a6ff", cat: "response",
+    desc: "The most underinvested phase — understanding what happened, why it worked, and how to prevent recurrence. This is where long-term resilience is built.",
+    col1: { head: "Key Activities", items: ["Full incident timeline reconstruction end-to-end", "Root cause analysis — technical and process failures", "Detection gap analysis — what should have fired?", "Regulatory reporting completed (ICO, FCA, etc.)", "Board-level summary produced for governance"] },
+    col2: { head: "Key Decisions", items: ["What was the total financial and reputational impact?", "Which controls failed and must be prioritised?", "Do we need to notify affected customers?", "Is our cyber insurance claim in order?", "What feeds back into the next tabletop exercise?"] },
+    col3: { head: "Capabilities Needed", items: ["Blameless post-mortem culture in the organisation", "Action tracking with named owners and deadlines", "Share anonymised learnings via sector ISACs", "Updated IR playbooks before next incident", "Threat model updated with TTPs observed"] }
+  }
+];
+
+const track = document.getElementById('track');
+
+phases.forEach((phase, i) => {
+  if (phase.type === 'divider') {
+    const div = document.createElement('div');
+    div.className = 'phase-divider';
+    div.innerHTML = `
+      <div class="phase-divider-line"></div>
+      <span class="phase-divider-label divider-response">↓ Response Begins</span>
+      <div class="phase-divider-line"></div>
+    `;
+    track.appendChild(div);
+    return;
+  }
+
+  const catClass = phase.cat === 'attack' ? 'cat-attack' : 'cat-response';
+  const catLabel = phase.cat === 'attack' ? 'Attack' : 'Response';
+
+  const row = document.createElement('div');
+  row.className = 'phase-row';
+  row.style.cssText = `--phase-color: ${phase.color}; animation-delay: ${i * 0.055}s`;
+
+  row.innerHTML = `
+    <div class="phase-num-wrap">
+      <div class="connector"></div>
+      <div class="phase-num">${phase.num}</div>
+    </div>
+    <div class="phase-card">
+      <div class="phase-header">
+        <div class="phase-header-left">
+          <div class="phase-title-row">
+            <span class="phase-cat ${catClass}">${catLabel}</span>
+            <span class="phase-name">${phase.name}</span>
+          </div>
+          <div class="phase-desc">${phase.desc}</div>
+        </div>
+        <span class="phase-toggle">+</span>
+      </div>
+      <div class="phase-body">
+        <div class="phase-body-inner" style="--phase-color:${phase.color}; border-color:${phase.color}55">
+          <div class="body-col" style="--phase-color:${phase.color}">
+            <h4>${phase.col1.head}</h4>
+            <ul>${phase.col1.items.map(t => `<li>${t}</li>`).join('')}</ul>
+          </div>
+          <div class="body-col" style="--phase-color:${phase.color}">
+            <h4>${phase.col2.head}</h4>
+            <ul>${phase.col2.items.map(t => `<li>${t}</li>`).join('')}</ul>
+          </div>
+          <div class="body-col" style="--phase-color:${phase.color}">
+            <h4>${phase.col3.head}</h4>
+            <ul>${phase.col3.items.map(t => `<li>${t}</li>`).join('')}</ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  row.addEventListener('click', () => {
+    const isActive = row.classList.contains('active');
+    document.querySelectorAll('.phase-row.active').forEach(r => r.classList.remove('active'));
+    if (!isActive) row.classList.add('active');
+  });
+
+  track.appendChild(row);
+});
+</script>
+</body>
+</html>

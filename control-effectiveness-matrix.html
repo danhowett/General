@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Effectiveness Matrix</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #58a6ff;
+
+    --strong: #2ecc71;
+    --strong-bg: rgba(46,204,113,0.15);
+    --strong-border: rgba(46,204,113,0.4);
+
+    --partial: #f39c12;
+    --partial-bg: rgba(243,156,18,0.15);
+    --partial-border: rgba(243,156,18,0.4);
+
+    --weak: #e74c3c;
+    --weak-bg: rgba(231,76,60,0.12);
+    --weak-border: rgba(231,76,60,0.35);
+
+    --na-bg: rgba(255,255,255,0.03);
+    --na-border: rgba(255,255,255,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    max-width: 1300px;
+    margin: 0 auto 36px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-header .subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; }
+
+  .legend-swatch {
+    width: 28px; height: 16px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 600; letter-spacing: 0.5px;
+  }
+
+  .ls-strong  { background: var(--strong-bg);  border: 1px solid var(--strong-border);  color: var(--strong); }
+  .ls-partial { background: var(--partial-bg); border: 1px solid var(--partial-border); color: var(--partial); }
+  .ls-weak    { background: var(--weak-bg);    border: 1px solid var(--weak-border);    color: var(--weak); }
+  .ls-na      { background: var(--na-bg);      border: 1px solid var(--na-border);      color: var(--muted); }
+
+  /* ── WRAP ── */
+  .wrap { max-width: 1300px; margin: 0 auto; }
+
+  /* ── VIEW TOGGLE ── */
+  .view-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    width: fit-content;
+  }
+
+  .view-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border: none;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.15s;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .view-btn:last-child { border-right: none; }
+  .view-btn:hover { background: var(--surface2); color: var(--text); }
+  .view-btn.active { background: var(--accent); color: #0d1117; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── TABLE WRAPPER ── */
+  .table-scroll { overflow-x: auto; margin-bottom: 40px; }
+
+  /* ── MATRIX TABLE ── */
+  .matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 3px;
+    font-size: 12px;
+    min-width: 900px;
+  }
+
+  /* ── COLUMN HEADERS ── */
+  .matrix-table thead th {
+    padding: 10px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    background: var(--surface);
+    border-radius: 4px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .matrix-table thead th.control-col {
+    text-align: left;
+    min-width: 200px;
+    padding-left: 14px;
+  }
+
+  .matrix-table thead th.phase-col { min-width: 110px; }
+
+  /* ── ROW HEADER ── */
+  .control-cell {
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  .control-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .control-cat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── RATING CELL ── */
+  .rating-cell {
+    padding: 6px;
+    text-align: center;
+    vertical-align: middle;
+    border-radius: 4px;
+    cursor: default;
+    position: relative;
+    transition: filter 0.12s;
+  }
+
+  .rating-cell:hover { filter: brightness(1.3); z-index: 5; }
+
+  .rating-cell.strong  { background: var(--strong-bg);  border: 1px solid var(--strong-border); }
+  .rating-cell.partial { background: var(--partial-bg); border: 1px solid var(--partial-border); }
+  .rating-cell.weak    { background: var(--weak-bg);    border: 1px solid var(--weak-border); }
+  .rating-cell.na      { background: var(--na-bg);      border: 1px solid var(--na-border); }
+
+  .rating-icon { font-size: 14px; display: block; line-height: 1; }
+
+  .rating-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .rating-cell.strong .rating-label  { color: var(--strong); }
+  .rating-cell.partial .rating-label { color: var(--partial); }
+  .rating-cell.weak .rating-label    { color: var(--weak); }
+  .rating-cell.na .rating-label      { color: var(--muted); }
+
+  /* ── TOOLTIP ── */
+  .rating-cell .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1c2330;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    width: 200px;
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.4;
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    text-align: left;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+
+  .rating-cell:hover .tooltip { visibility: visible; opacity: 1; }
+
+  /* ── ROW CATEGORY SEPARATOR ── */
+  .cat-separator td {
+    padding: 6px 0 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: transparent !important;
+    border: none !important;
+  }
+
+  /* ── SCORE BAR SECTION ── */
+  .score-section { margin-bottom: 40px; }
+
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .score-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .score-name { font-size: 13px; font-weight: 700; }
+  .score-pct  { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 500; }
+
+  .score-bar-track {
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .score-sub { font-size: 11px; color: var(--muted); }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    max-width: 1300px;
+    margin: 48px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>Security Control Effectiveness Matrix</h1>
+    <div class="subtitle">// which controls stop which threats — mapped to attack phases and threat types</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch ls-strong">●●●</div> Strong</div>
+    <div class="legend-item"><div class="legend-swatch ls-partial">●●○</div> Partial</div>
+    <div class="legend-item"><div class="legend-swatch ls-weak">●○○</div> Weak</div>
+    <div class="legend-item"><div class="legend-swatch ls-na">—</div> N/A</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="view-toggle">
+    <button class="view-btn active" id="btn-phases" onclick="switchView('phases')">
+      ⛓ Controls vs Attack Phases
+    </button>
+    <button class="view-btn" id="btn-threats" onclick="switchView('threats')">
+      🎯 Controls vs Threat Types
+    </button>
+  </div>
+
+  <div id="matrixContent"></div>
+
+  <!-- SCORE SUMMARY -->
+  <div class="section-label">Control Coverage Summary — by threat type</div>
+  <div class="score-section">
+    <div class="score-grid" id="scoreGrid"></div>
+  </div>
+
+</div>
+
+<div class="page-footer">
+  <span>// control effectiveness matrix — v1.0</span>
+  <span>aligned to NIST CSF · CIS Controls v8 · NCSC Cyber Essentials Plus</span>
+</div>
+
+<script>
+
+// ── DATA ────────────────────────────────────────────────────
+
+const controls = [
+  // Identity & Access
+  { name: 'Multi-Factor Authentication (MFA)',       cat: 'Identity & Access',  id: 'mfa' },
+  { name: 'Privileged Access Management (PAM)',      cat: 'Identity & Access',  id: 'pam' },
+  { name: 'Identity & Access Management (IAM)',      cat: 'Identity & Access',  id: 'iam' },
+  { name: 'Zero Trust Network Access (ZTNA)',        cat: 'Identity & Access',  id: 'ztna' },
+  // Endpoint
+  { name: 'Endpoint Detection & Response (EDR)',     cat: 'Endpoint',           id: 'edr' },
+  { name: 'Patch Management',                        cat: 'Endpoint',           id: 'patch' },
+  { name: 'Application Whitelisting',                cat: 'Endpoint',           id: 'appwhite' },
+  { name: 'Full-Disk Encryption',                    cat: 'Endpoint',           id: 'fde' },
+  // Email & Web
+  { name: 'Email Gateway (DMARC/DKIM/SPF)',          cat: 'Email & Web',        id: 'email' },
+  { name: 'Web Proxy / URL Filtering',               cat: 'Email & Web',        id: 'proxy' },
+  { name: 'Web Application Firewall (WAF)',           cat: 'Email & Web',        id: 'waf' },
+  // Network
+  { name: 'Firewall / Network Segmentation',         cat: 'Network',            id: 'fw' },
+  { name: 'Protective DNS (PDNS)',                   cat: 'Network',            id: 'pdns' },
+  { name: 'Network Detection & Response (NDR)',      cat: 'Network',            id: 'ndr' },
+  { name: 'DDoS Mitigation',                         cat: 'Network',            id: 'ddos' },
+  // Data
+  { name: 'Data Loss Prevention (DLP)',              cat: 'Data',               id: 'dlp' },
+  { name: 'Backup & Recovery (Immutable)',           cat: 'Data',               id: 'backup' },
+  { name: 'Cloud Security Posture Mgmt (CSPM)',      cat: 'Data',               id: 'cspm' },
+  // Detection & Response
+  { name: 'SIEM / Security Monitoring',             cat: 'Detection & Response', id: 'siem' },
+  { name: 'Vulnerability Management',               cat: 'Detection & Response', id: 'vulnmgmt' },
+  { name: 'Security Awareness Training',            cat: 'Detection & Response', id: 'awareness' },
+  { name: 'Incident Response Plan',                 cat: 'Detection & Response', id: 'irplan' },
+];
+
+// ── VIEW 1: Controls vs Kill Chain Phases ──
+
+const phases = [
+  { id: 'recon',      label: 'Recon' },
+  { id: 'weapon',     label: 'Weapon' },
+  { id: 'delivery',   label: 'Delivery' },
+  { id: 'exploit',    label: 'Exploit' },
+  { id: 'install',    label: 'Install' },
+  { id: 'c2',         label: 'C2' },
+  { id: 'actions',    label: 'Actions' },
+];
+
+// rating: 'strong' | 'partial' | 'weak' | 'na'
+// tooltip: what the control does at this phase
+const phaseMatrix = {
+  mfa:        { recon:'na',       weapon:'na',      delivery:'na',      exploit:'strong',  install:'partial', c2:'na',      actions:'strong',  tips: { exploit:'Stops credential-based exploitation cold. Phishing harvested passwords are useless without the second factor.', install:'Limits attacker ability to create backdoor accounts.', actions:'Prevents lateral movement via stolen credentials — attacker cannot reuse compromised passwords across systems.' } },
+  pam:        { recon:'na',       weapon:'na',      delivery:'na',      exploit:'partial', install:'strong',  c2:'partial', actions:'strong',  tips: { exploit:'Limits blast radius if initial credentials are compromised — attacker cannot escalate to admin.', install:'Prevents creation of rogue privileged accounts. Monitors for unusual privileged activity.', actions:'Contains lateral movement — attacker cannot easily pivot using admin credentials they do not hold.' } },
+  iam:        { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'strong',  install:'partial', c2:'na',      actions:'partial', tips: { recon:'Limits what internal info attackers can enumerate if they gain partial access.', exploit:'Enforces least privilege — compromised account has limited reach.', actions:'Role-based access prevents lateral movement to crown-jewel systems.' } },
+  ztna:       { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'strong',  install:'partial', c2:'partial', actions:'strong',  tips: { exploit:'Never-trust-always-verify prevents credential reuse for access.', c2:'Micro-segmentation limits outbound C2 connections from internal hosts.', actions:'Prevents lateral movement — every connection requires re-authentication and authorisation.' } },
+  edr:        { recon:'na',       weapon:'na',      delivery:'partial', exploit:'strong',  install:'strong',  c2:'strong',  actions:'strong',  tips: { delivery:'Scans files on download, may catch known malware signatures.', exploit:'Behavioural detection catches exploitation attempts and unusual process behaviour.', install:'Detects persistence mechanisms — scheduled tasks, registry modifications, file writes.', c2:'Detects beaconing and unusual outbound connections from endpoints.', actions:'Detects lateral movement tools, credential dumping, ransomware file activity.' } },
+  patch:      { recon:'na',       weapon:'na',      delivery:'na',      exploit:'strong',  install:'partial', c2:'na',      actions:'na',      tips: { exploit:'Removes known vulnerabilities that exploitation depends on. Most ransomware exploits patched vulnerabilities.', install:'Reduces attack surface for privilege escalation via local exploits.' } },
+  appwhite:   { recon:'na',       weapon:'na',      delivery:'partial', exploit:'strong',  install:'strong',  c2:'partial', actions:'partial', tips: { delivery:'Blocks execution of untrusted delivery payloads.', exploit:'Prevents execution of exploit-dropped executables.', install:'Blocks malware from writing and executing persistence mechanisms.', c2:'Limits executables that can initiate outbound connections.' } },
+  fde:        { recon:'na',       weapon:'na',      delivery:'na',      exploit:'na',      install:'na',      c2:'na',      actions:'partial', tips: { actions:'Protects data on stolen or seized physical devices. Does not help against logged-in attacker with active session.' } },
+  email:      { recon:'na',       weapon:'na',      delivery:'strong',  exploit:'partial', install:'na',      c2:'na',      actions:'na',      tips: { delivery:'DMARC/DKIM/SPF blocks spoofed sender domains. Attachment scanning catches known malware. Biggest single control for phishing delivery.', exploit:'Anti-phishing link scanning may catch credential harvesting URLs at click time.' } },
+  proxy:      { recon:'partial',  weapon:'na',      delivery:'strong',  exploit:'partial', install:'na',      c2:'partial', actions:'na',      tips: { recon:'Blocks access to attacker infrastructure during reconnaissance browsing.', delivery:'Blocks drive-by downloads and malicious URLs — can filter newly registered domains.', exploit:'Stops web-based exploitation of unpatched browsers.', c2:'Blocks outbound connections to known-malicious C2 domains.' } },
+  waf:        { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'strong',  install:'na',      c2:'na',      actions:'partial', tips: { recon:'Limits information disclosure from web applications during reconnaissance.', exploit:'Blocks SQLi, XSS, and web application exploitation attempts.', actions:'Detects and blocks data exfiltration via web application abuse.' } },
+  fw:         { recon:'partial',  weapon:'na',      delivery:'partial', exploit:'partial', install:'na',      c2:'partial', actions:'partial', tips: { recon:'Limits external exposure of internal services.', delivery:'Blocks inbound malicious traffic from known-bad sources.', c2:'Egress filtering limits outbound C2 on non-standard ports.', actions:'Segmentation contains lateral movement blast radius.' } },
+  pdns:       { recon:'na',       weapon:'na',      delivery:'partial', exploit:'na',      install:'na',      c2:'strong',  actions:'partial', tips: { delivery:'Blocks resolution of malicious delivery infrastructure domains.', c2:'NCSC PDNS blocks DNS-based C2, DGA domains, and known malicious resolvers — one of the most effective C2 controls.', actions:'Blocks DNS-based data exfiltration and tunnelling.' } },
+  ndr:        { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'partial', install:'partial', c2:'strong',  actions:'strong',  tips: { recon:'Detects unusual internal scanning and enumeration.', c2:'Full traffic visibility detects beaconing, unusual volumes, and C2 patterns.', actions:'East-west visibility detects lateral movement between internal segments.' } },
+  ddos:       { recon:'na',       weapon:'na',      delivery:'na',      exploit:'na',      install:'na',      c2:'na',      actions:'strong',  tips: { actions:'Specifically mitigates DDoS as an action-on-objective. Does not help against other attack phases.' } },
+  dlp:        { recon:'na',       weapon:'na',      delivery:'na',      exploit:'na',      install:'na',      c2:'partial', actions:'strong',  tips: { c2:'May detect staging of sensitive data before C2 exfiltration.', actions:'Primary control for data exfiltration — detects and blocks bulk sensitive data leaving the estate.' } },
+  backup:     { recon:'na',       weapon:'na',      delivery:'na',      exploit:'na',      install:'na',      c2:'na',      actions:'strong',  tips: { actions:'Immutable, offline backups are the primary defence against ransomware impact — cannot be encrypted by attacker. Does not prevent the attack but limits the impact to near-zero.' } },
+  cspm:       { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'partial', install:'na',      c2:'partial', actions:'partial', tips: { recon:'Prevents cloud misconfigurations that expose assets to reconnaissance.', exploit:'Detects and remediates exposed storage buckets and misconfigured services before exploitation.', c2:'Detects unusual outbound from cloud workloads.', actions:'Detects unusual access patterns and mass data access in cloud environments.' } },
+  siem:       { recon:'partial',  weapon:'na',      delivery:'partial', exploit:'partial', install:'strong',  c2:'strong',  actions:'strong',  tips: { install:'Correlation rules detect persistence indicators — new services, registry changes, new accounts.', c2:'Aggregates endpoint, network, and DNS signals to detect C2 patterns no single tool sees alone.', actions:'Provides the detection capability across all action-on-objective behaviours — critical for response speed.' } },
+  vulnmgmt:   { recon:'partial',  weapon:'na',      delivery:'na',      exploit:'strong',  install:'partial', c2:'na',      actions:'na',      tips: { recon:'Reduces attack surface available for reconnaissance to identify.', exploit:'Removes the vulnerabilities that exploitation depends on — especially internet-facing systems.' } },
+  awareness:  { recon:'partial',  weapon:'na',      delivery:'strong',  exploit:'strong',  install:'na',      c2:'na',      actions:'na',      tips: { delivery:'Users who recognise phishing and report it are the single most effective delivery-phase control.', exploit:'Awareness of social engineering prevents human-layer exploitation.' } },
+  irplan:     { recon:'na',       weapon:'na',      delivery:'na',      exploit:'na',      install:'na',      c2:'partial', actions:'strong',  tips: { c2:'Faster detection-to-response means shorter C2 dwell time.', actions:'A tested IR plan dramatically reduces time-to-contain, limiting the total impact of actions on objective.' } },
+};
+
+// ── VIEW 2: Controls vs Threat Types ──
+
+const threats = [
+  { id: 'phishing',     label: 'Phishing / BEC' },
+  { id: 'ransomware',   label: 'Ransomware' },
+  { id: 'apt',          label: 'APT / Nation-State' },
+  { id: 'insider',      label: 'Insider Threat' },
+  { id: 'supplychain',  label: 'Supply Chain' },
+  { id: 'cloudbreach',  label: 'Cloud Breach' },
+  { id: 'ddosattack',   label: 'DDoS' },
+  { id: 'credstuff',    label: 'Cred Stuffing' },
+];
+
+const threatMatrix = {
+  mfa:        { phishing:'strong',  ransomware:'partial', apt:'strong',  insider:'partial', supplychain:'partial', cloudbreach:'strong',  ddosattack:'na',     credstuff:'strong',  tips:{ phishing:'MFA is the single most effective control against phishing — harvested passwords are worthless without the second factor.', ransomware:'Stops credential-based initial access to ransomware. Does not help once execution starts.', apt:'Raises the cost of initial access significantly. State actors will invest in MFA bypass (SIM swap, fatigue).', credstuff:'Completely neutralises credential stuffing attacks — even perfect password matches cannot log in without MFA.' } },
+  pam:        { phishing:'partial', ransomware:'strong',  apt:'strong',  insider:'strong',  supplychain:'partial', cloudbreach:'partial', ddosattack:'na',     credstuff:'partial', tips:{ ransomware:'Limits ransomware lateral movement — attacker cannot easily obtain admin credentials to encrypt network shares.', apt:'Forces APT to explicitly target privilege escalation rather than inheriting admin rights.', insider:'Restricts privileged access to those who need it, with full audit trails of privileged actions.' } },
+  iam:        { phishing:'partial', ransomware:'partial', apt:'partial', insider:'strong',  supplychain:'partial', cloudbreach:'strong',  ddosattack:'na',     credstuff:'strong',  tips:{ insider:'Least-privilege access limits the data an insider can access and exfiltrate.', cloudbreach:'Correct IAM configuration is the primary defence against cloud account takeover and data exposure.', credstuff:'Account lockout policies and suspicious login detection embedded in IAM.' } },
+  ztna:       { phishing:'partial', ransomware:'strong',  apt:'strong',  insider:'strong',  supplychain:'strong',  cloudbreach:'strong',  ddosattack:'na',     credstuff:'strong',  tips:{ ransomware:'Micro-segmentation contains ransomware blast radius — cannot traverse freely between segments.', apt:'Continuous verification makes lateral movement far harder — attacker cannot reuse a single compromised session.', supplychain:'Limits what a compromised supplier connection can reach within the estate.' } },
+  edr:        { phishing:'partial', ransomware:'strong',  apt:'strong',  insider:'partial', supplychain:'strong',  cloudbreach:'na',     ddosattack:'na',     credstuff:'na',      tips:{ ransomware:'Behavioural detection catches ransomware execution patterns before full encryption. Remote isolation quarantines affected hosts.', apt:'Detects LOTL techniques, unusual process behaviour, and credential dumping used by APT actors.', supplychain:'Detects malicious code executing even from trusted software channels.' } },
+  patch:      { phishing:'na',      ransomware:'strong',  apt:'strong',  insider:'na',      supplychain:'partial', cloudbreach:'partial', ddosattack:'na',     credstuff:'na',      tips:{ ransomware:'Majority of ransomware exploits known, patched vulnerabilities. Prompt patching is highly effective.', apt:'Removes the exploitable vulnerabilities APT actors use for initial access and privilege escalation.' } },
+  appwhite:   { phishing:'partial', ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'strong',  cloudbreach:'na',     ddosattack:'na',     credstuff:'na',      tips:{ ransomware:'Blocks execution of ransomware binaries that are not in the approved application list.', supplychain:'Blocks execution of malicious code introduced via compromised software supply chain.' } },
+  fde:        { phishing:'na',      ransomware:'na',      apt:'partial', insider:'partial', supplychain:'na',      cloudbreach:'na',     ddosattack:'na',     credstuff:'na',      tips:{ apt:'Protects data on stolen devices — limits exfiltration via physical access.', insider:'Prevents insider accessing data from a stolen or lost device outside the organisation.' } },
+  email:      { phishing:'strong',  ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'na',      cloudbreach:'na',     ddosattack:'na',     credstuff:'na',      tips:{ phishing:'Primary defence against phishing delivery. DMARC blocks spoofed senders. Attachment scanning catches known payloads.', ransomware:'Most ransomware enters via phishing — stopping delivery stops the chain.', apt:'Reduces spear phishing success rate. Advanced state actors may bypass but raises the bar.' } },
+  proxy:      { phishing:'strong',  ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'partial', cloudbreach:'partial', ddosattack:'na',     credstuff:'na',      tips:{ phishing:'Blocks malicious URLs at click time. Filtering newly registered domains catches many phishing sites.', ransomware:'Blocks download of ransomware payloads and C2 beaconing via web.' } },
+  waf:        { phishing:'na',      ransomware:'na',      apt:'partial', insider:'na',      supplychain:'na',      cloudbreach:'strong',  ddosattack:'partial', credstuff:'strong',  tips:{ cloudbreach:'Blocks web application exploitation that leads to cloud credential theft.', credstuff:'Rate limiting and bot detection are primary defences against credential stuffing against web applications.', ddosattack:'Application-layer DDoS (L7) mitigation included in most WAF products.' } },
+  fw:         { phishing:'partial', ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'partial', cloudbreach:'partial', ddosattack:'partial', credstuff:'na',      tips:{ ransomware:'Network segmentation prevents ransomware reaching all network shares. Egress filtering limits C2 callback.', apt:'Limits attacker\'s ability to connect back to C2 infrastructure on non-standard ports.' } },
+  pdns:       { phishing:'strong',  ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'partial', cloudbreach:'na',     ddosattack:'na',     credstuff:'na',      tips:{ phishing:'Blocks resolution of phishing infrastructure domains before user clicks.', ransomware:'Blocks C2 callback and DGA domains used by ransomware to receive encryption keys.', apt:'Forces APT to use HTTPS-based C2 over legitimate services — raises cost of operation.' } },
+  ndr:        { phishing:'na',      ransomware:'strong',  apt:'strong',  insider:'strong',  supplychain:'strong',  cloudbreach:'partial', ddosattack:'partial', credstuff:'na',      tips:{ ransomware:'Detects lateral movement and unusual file access patterns before full encryption.', apt:'Full network visibility detects slow, low-signal APT movement that endpoint tools miss.', insider:'Detects unusual data access and exfiltration patterns from internal users.' } },
+  ddos:       { phishing:'na',      ransomware:'na',      apt:'na',      insider:'na',      supplychain:'na',      cloudbreach:'na',     ddosattack:'strong',  credstuff:'na',      tips:{ ddosattack:'Specifically designed to absorb and mitigate volumetric DDoS. Scrubbing centres and anycast diffusion are primary techniques.' } },
+  dlp:        { phishing:'na',      ransomware:'partial', apt:'partial', insider:'strong',  supplychain:'partial', cloudbreach:'strong',  ddosattack:'na',     credstuff:'na',      tips:{ insider:'Primary control for insider data exfiltration — detects and blocks bulk sensitive data movement.', cloudbreach:'Detects sensitive data being staged or moved to unauthorised cloud destinations.', apt:'Detects large-scale exfiltration as an indicator of APT actions-on-objective.' } },
+  backup:     { phishing:'na',      ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'partial', cloudbreach:'partial', ddosattack:'na',     credstuff:'na',      tips:{ ransomware:'Immutable offline backups are the definitive ransomware recovery control. Reduces ransom leverage to zero.', apt:'Enables recovery if APT deploys destructive wipers (NotPetya-style).' } },
+  cspm:       { phishing:'na',      ransomware:'partial', apt:'partial', insider:'partial', supplychain:'na',      cloudbreach:'strong',  ddosattack:'na',     credstuff:'partial', tips:{ cloudbreach:'Primary control for cloud misconfiguration — detects exposed storage, misconfigured IAM, and public-facing databases.', apt:'Detects unusual cloud API calls and access patterns indicative of persistent APT access.' } },
+  siem:       { phishing:'partial', ransomware:'strong',  apt:'strong',  insider:'strong',  supplychain:'strong',  cloudbreach:'strong',  ddosattack:'partial', credstuff:'partial', tips:{ ransomware:'Correlates multiple weak signals into ransomware detection before full encryption.', apt:'Only control that correlates signals across all layers — essential for detecting low-and-slow APT.', insider:'Behavioural analytics on top of SIEM data (UEBA) is the gold standard for insider detection.' } },
+  vulnmgmt:   { phishing:'na',      ransomware:'strong',  apt:'strong',  insider:'na',      supplychain:'partial', cloudbreach:'strong',  ddosattack:'na',     credstuff:'na',      tips:{ ransomware:'Closes the vulnerabilities ransomware operators exploit for initial access.', apt:'Systematic patching removes the exploitable weaknesses APT actors rely on for initial access and escalation.', cloudbreach:'Cloud vulnerability scanning identifies misconfigured and exposed services before attackers do.' } },
+  awareness:  { phishing:'strong',  ransomware:'strong',  apt:'partial', insider:'partial', supplychain:'na',      cloudbreach:'na',     ddosattack:'na',     credstuff:'partial', tips:{ phishing:'Trained users who recognise and report phishing are the most effective delivery-phase defence.', ransomware:'Ransomware most commonly enters via phishing — user awareness breaks the chain.', credstuff:'Awareness of password hygiene and unique passwords reduces credential stuffing success.' } },
+  irplan:     { phishing:'partial', ransomware:'strong',  apt:'strong',  insider:'partial', supplychain:'partial', cloudbreach:'partial', ddosattack:'partial', credstuff:'na',      tips:{ ransomware:'A tested IR plan cuts time-to-contain dramatically, limiting the blast radius of ransomware.', apt:'Critical for APT response — without a plan, slow response extends dwell time and data loss.' } },
+};
+
+// ── RENDER ──────────────────────────────────────────────────
+
+let currentView = 'phases';
+
+function ratingConfig(r) {
+  const map = {
+    strong:  { cls: 'strong',  icon: '●●●', label: 'Strong' },
+    partial: { cls: 'partial', icon: '●●○', label: 'Partial' },
+    weak:    { cls: 'weak',    icon: '●○○', label: 'Weak' },
+    na:      { cls: 'na',      icon: '—',   label: 'N/A' },
+  };
+  return map[r] || map.na;
+}
+
+function buildTable(cols, dataFn) {
+  let cats = [...new Set(controls.map(c => c.cat))];
+  let html = `<div class="table-scroll"><table class="matrix-table"><thead><tr>
+    <th class="control-col">Security Control</th>
+    ${cols.map(c => `<th class="phase-col">${c.label}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  cats.forEach(cat => {
+    html += `<tr class="cat-separator"><td colspan="${cols.length + 1}"><span>${cat}</span></td></tr>`;
+    controls.filter(c => c.cat === cat).forEach(ctrl => {
+      html += `<tr>
+        <td class="control-cell">
+          <div class="control-name">${ctrl.name}</div>
+          <div class="control-cat">${ctrl.cat}</div>
+        </td>`;
+      cols.forEach(col => {
+        const data = dataFn(ctrl, col);
+        const rating = data.rating;
+        const tip = data.tip || '';
+        const rc = ratingConfig(rating);
+        html += `<td class="rating-cell ${rc.cls}">
+          <span class="rating-icon">${rc.icon}</span>
+          <span class="rating-label">${rc.label}</span>
+          ${tip ? `<div class="tooltip">${tip}</div>` : ''}
+        </td>`;
+      });
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderPhaseView() {
+  document.getElementById('matrixContent').innerHTML =
+    `<div class="section-label">Controls vs Kill Chain Phases — hover cells for detail</div>` +
+    buildTable(phases, (ctrl, col) => ({
+      rating: phaseMatrix[ctrl.id]?.[col.id] || 'na',
+      tip: phaseMatrix[ctrl.id]?.tips?.[col.id] || ''
+    }));
+}
+
+function renderThreatView() {
+  document.getElementById('matrixContent').innerHTML =
+    `<div class="section-label">Controls vs Threat Types — hover cells for detail</div>` +
+    buildTable(threats, (ctrl, col) => ({
+      rating: threatMatrix[ctrl.id]?.[col.id] || 'na',
+      tip: threatMatrix[ctrl.id]?.tips?.[col.id] || ''
+    }));
+}
+
+function renderScores() {
+  const threatList = [
+    { id: 'phishing',    label: 'Phishing / BEC',   color: '#e74c3c' },
+    { id: 'ransomware',  label: 'Ransomware',        color: '#f39c12' },
+    { id: 'apt',         label: 'APT / Nation-State', color: '#9b59b6' },
+    { id: 'insider',     label: 'Insider Threat',    color: '#e91e63' },
+    { id: 'supplychain', label: 'Supply Chain',      color: '#ff5722' },
+    { id: 'cloudbreach', label: 'Cloud Breach',      color: '#00bcd4' },
+    { id: 'ddosattack',  label: 'DDoS',              color: '#3498db' },
+    { id: 'credstuff',   label: 'Cred Stuffing',     color: '#2ecc71' },
+  ];
+
+  const weights = { strong: 3, partial: 1.5, weak: 0.5, na: 0 };
+  const maxPossible = controls.length * 3;
+
+  const scoreHTML = threatList.map(t => {
+    const score = controls.reduce((sum, ctrl) => {
+      return sum + (weights[threatMatrix[ctrl.id]?.[t.id]] || 0);
+    }, 0);
+    const pct = Math.round((score / maxPossible) * 100);
+    const strongCount = controls.filter(c => threatMatrix[c.id]?.[t.id] === 'strong').length;
+    const partialCount = controls.filter(c => threatMatrix[c.id]?.[t.id] === 'partial').length;
+
+    return `<div class="score-card">
+      <div class="score-card-header">
+        <div class="score-name">${t.label}</div>
+        <div class="score-pct" style="color:${t.color}">${pct}%</div>
+      </div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" data-w="${pct}" style="width:0%; background:${t.color}"></div>
+      </div>
+      <div class="score-sub">${strongCount} strong controls · ${partialCount} partial controls</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('scoreGrid').innerHTML = scoreHTML;
+
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 100);
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('btn-phases').classList.toggle('active', view === 'phases');
+  document.getElementById('btn-threats').classList.toggle('active', view === 'threats');
+  if (view === 'phases') renderPhaseView();
+  else renderThreatView();
+}
+
+renderPhaseView();
+renderScores();
+</script>
+</body>
+</html>

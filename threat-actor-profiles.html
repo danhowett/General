@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threat Actor Profiles</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #58a6ff;
+
+    --nation: #e74c3c;
+    --nation-bg: rgba(231,76,60,0.12);
+    --nation-border: rgba(231,76,60,0.35);
+
+    --criminal: #f39c12;
+    --criminal-bg: rgba(243,156,18,0.12);
+    --criminal-border: rgba(243,156,18,0.35);
+
+    --hacktivist: #9b59b6;
+    --hacktivist-bg: rgba(155,89,182,0.12);
+    --hacktivist-border: rgba(155,89,182,0.35);
+
+    --insider: #e91e63;
+    --insider-bg: rgba(233,30,99,0.12);
+    --insider-border: rgba(233,30,99,0.35);
+
+    --competitor: #00bcd4;
+    --competitor-bg: rgba(0,188,212,0.12);
+    --competitor-border: rgba(0,188,212,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-header .subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* ── ACTOR TYPE LEGEND ── */
+  .type-legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .type-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: opacity 0.2s;
+  }
+
+  .type-chip.nation-state { background: var(--nation-bg); color: var(--nation); border-color: var(--nation-border); }
+  .type-chip.criminal     { background: var(--criminal-bg); color: var(--criminal); border-color: var(--criminal-border); }
+  .type-chip.hacktivist   { background: var(--hacktivist-bg); color: var(--hacktivist); border-color: var(--hacktivist-border); }
+  .type-chip.insider      { background: var(--insider-bg); color: var(--insider); border-color: var(--insider-border); }
+  .type-chip.competitor   { background: var(--competitor-bg); color: var(--competitor); border-color: var(--competitor-border); }
+
+  /* ── WRAP ── */
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* ── SECTOR SWITCHER ── */
+  .sector-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .sector-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .sector-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface2); }
+
+  .sector-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d1117;
+    font-weight: 700;
+  }
+
+  .sector-btn .s-icon { font-size: 15px; }
+
+  /* ── SECTOR HEADER ── */
+  .sector-overview {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 28px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .sector-overview h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .sector-overview p  { font-size: 13px; color: var(--muted); line-height: 1.55; max-width: 700px; }
+
+  .threat-level-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    min-width: 110px;
+    text-align: center;
+  }
+
+  .threat-level-badge .tl-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .threat-level-badge .tl-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .tl-critical { background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.4); color: #ff7b72; }
+  .tl-high     { background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); color: #f0883e; }
+  .tl-medium   { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4); color: #3fb950; }
+
+  /* ── ACTOR GRID ── */
+  .actor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 600px) { .actor-grid { grid-template-columns: 1fr; } }
+
+  /* ── ACTOR CARD ── */
+  .actor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .actor-card:hover { border-color: var(--actor-color); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+
+  .actor-card-header {
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-left: 4px solid var(--actor-color);
+  }
+
+  .actor-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .actor-alias { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+
+  .actor-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+
+  .actor-type-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .sophistication {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .soph-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+
+  .soph-pips { display: flex; gap: 3px; }
+
+  .pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  .pip.filled { background: var(--actor-color); }
+
+  .actor-card-body {
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .actor-section h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .actor-section ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+
+  .actor-section ul li {
+    font-size: 12px;
+    color: rgba(230,237,243,0.85);
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    line-height: 1.35;
+  }
+
+  .actor-section ul li::before {
+    content: '›';
+    color: var(--actor-color);
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: -1px;
+  }
+
+  .actor-card-footer {
+    padding: 10px 18px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .actor-card-footer .footer-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .actor-card-footer .footer-text {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .motivation-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .motive-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .motive-tag.primary {
+    background: color-mix(in srgb, var(--actor-color) 12%, transparent);
+    border-color: color-mix(in srgb, var(--actor-color) 35%, transparent);
+    color: var(--actor-color);
+    font-weight: 600;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    max-width: 1200px;
+    margin: 48px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .actor-card { animation: fadeIn 0.3s ease forwards; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>Threat Actor Profiles</h1>
+    <div class="subtitle">// sector-specific threat intelligence — select an industry to view relevant actors</div>
+  </div>
+  <div class="type-legend">
+    <span class="type-chip nation-state">Nation-State</span>
+    <span class="type-chip criminal">Cybercriminal</span>
+    <span class="type-chip hacktivist">Hacktivist</span>
+    <span class="type-chip insider">Insider Threat</span>
+    <span class="type-chip competitor">Competitor</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sector-bar" id="sectorBar"></div>
+  <div id="sectorContent"></div>
+</div>
+
+<div class="page-footer">
+  <span>// threat actor profiles — v1.0</span>
+  <span>intelligence aligned to MITRE ATT&CK · NCSC guidance</span>
+</div>
+
+<script>
+const ACTOR_COLORS = {
+  'nation-state': '#e74c3c',
+  'criminal':     '#f39c12',
+  'hacktivist':   '#9b59b6',
+  'insider':      '#e91e63',
+  'competitor':   '#00bcd4'
+};
+
+const sectors = [
+  {
+    id: 'telco',
+    name: 'Telecoms',
+    icon: '📡',
+    threatLevel: 'critical',
+    summary: 'Global telecoms operators represent one of the highest-value targets in the threat landscape. They hold vast quantities of customer PII, metadata on communications, and provide critical national infrastructure. State-sponsored actors prize telcos for lawful intercept bypass and mass surveillance. Criminals exploit billing systems and SS7 vulnerabilities. The sector\'s complex, legacy-heavy network architecture creates broad attack surface.',
+    actors: [
+      {
+        name: 'Salt Typhoon',
+        alias: 'aka UNC2286 / Earth Estries',
+        type: 'nation-state',
+        origin: 'China (PRC)',
+        sophistication: 5,
+        motivations: ['Intelligence collection', 'Lawful intercept access', 'Strategic surveillance'],
+        primaryMotive: 'Intelligence collection',
+        ttps: ['SS7 protocol exploitation', 'Compromise of lawful intercept systems', 'Long-term persistent access (avg 18mo dwell)', 'Living-off-the-land to evade detection'],
+        targets: ['Core network infrastructure', 'Lawful intercept platforms', 'Senior executive communications', 'Government customer data'],
+        example: 'Confirmed to have compromised multiple US and European telco operators in 2023–24, accessing lawful intercept systems used by law enforcement agencies.'
+      },
+      {
+        name: 'Scattered Spider',
+        alias: 'aka UNC3944 / Oktapus',
+        type: 'criminal',
+        origin: 'English-speaking (US/UK)',
+        sophistication: 4,
+        motivations: ['Financial gain', 'SIM swapping', 'Ransomware deployment'],
+        primaryMotive: 'Financial gain',
+        ttps: ['SIM swap fraud at scale', 'Vishing of helpdesk staff', 'MFA fatigue attacks', 'Azure AD and Okta compromise', 'BYOVD for EDR bypass'],
+        targets: ['Customer account databases', 'Helpdesk staff', 'Identity platforms', 'Cryptocurrency holders'],
+        example: 'Targeted multiple telco providers to conduct SIM swaps enabling cryptocurrency theft. Later pivoted to ransomware against MGM and Caesars Entertainment.'
+      },
+      {
+        name: 'Killnet / NoName057',
+        alias: 'aka pro-Russian hacktivist collective',
+        type: 'hacktivist',
+        origin: 'Russia-aligned',
+        sophistication: 2,
+        motivations: ['Political disruption', 'Pro-Kremlin propaganda', 'Retaliation for Western sanctions'],
+        primaryMotive: 'Political disruption',
+        ttps: ['Volumetric DDoS against public-facing infrastructure', 'Coordinated Telegram-recruited botnet attacks', 'Defacement of public web portals'],
+        targets: ['Public-facing web portals', 'DNS infrastructure', 'Customer-facing services'],
+        example: 'Launched sustained DDoS campaigns against European telco operators in 2022–23 in retaliation for support of Ukraine, causing intermittent service disruption.'
+      },
+      {
+        name: 'Malicious Insider (Privileged Employee)',
+        alias: 'Disgruntled or financially motivated staff',
+        type: 'insider',
+        origin: 'Internal',
+        sophistication: 3,
+        motivations: ['Financial gain', 'Grievance', 'Coercion by criminal groups'],
+        primaryMotive: 'Financial gain',
+        ttps: ['Abuse of privileged access to customer records', 'SIM swap facilitation for criminal gangs', 'Exfiltration of MVNO customer databases', 'Disabling of monitoring/logging'],
+        targets: ['Customer PII databases', 'IMSI/IMEI data', 'Internal billing systems', 'Network management platforms'],
+        example: 'Numerous documented cases of telco employees accepting payments from criminal gangs to perform SIM swaps on high-value targets including crypto investors and executives.'
+      }
+    ]
+  },
+  {
+    id: 'financial',
+    name: 'Financial Services',
+    icon: '🏦',
+    threatLevel: 'critical',
+    summary: 'Financial services organisations face the full breadth of the threat landscape driven by the obvious financial motivation. Nation-states target SWIFT infrastructure and central bank reserves. Cybercriminals deploy sophisticated malware targeting payment systems and conduct BEC fraud. The sector is among the most regulated globally (FCA, PRA, DORA) and faces significant reputational risk from any breach.',
+    actors: [
+      {
+        name: 'Lazarus Group',
+        alias: 'aka APT38 / HIDDEN COBRA',
+        type: 'nation-state',
+        origin: 'North Korea (DPRK)',
+        sophistication: 5,
+        motivations: ['Sanctions evasion', 'Revenue generation for regime', 'Cryptocurrency theft'],
+        primaryMotive: 'Revenue generation for regime',
+        ttps: ['SWIFT messaging system manipulation', 'Supply chain compromise of financial software', 'Cryptocurrency exchange targeting', 'Custom malware (FASTCash, AppleJeus)', 'Spear phishing of finance staff'],
+        targets: ['SWIFT-connected systems', 'Cryptocurrency exchanges', 'Investment banks', 'Central banks'],
+        example: 'Stole $81M from Bangladesh Bank via SWIFT in 2016. Estimated to have stolen over $3B in cryptocurrency between 2017–2023 to fund DPRK weapons programmes.'
+      },
+      {
+        name: 'FIN7',
+        alias: 'aka Carbanak / Carbon Spider',
+        type: 'criminal',
+        origin: 'Eastern Europe (Russia/Ukraine)',
+        sophistication: 5,
+        motivations: ['Financial theft', 'Ransomware (BlackCat/ALPHV affiliate)', 'Payment card fraud'],
+        primaryMotive: 'Financial theft',
+        ttps: ['Spear phishing with custom Carbanak malware', 'POS system compromise', 'Ransomware deployment as secondary monetisation', 'Fake security company front (Combi Security)'],
+        targets: ['Payment processing infrastructure', 'POS terminals', 'Investment management firms', 'Insurance companies'],
+        example: 'Stole over $1B from banks and retailers over a decade. Pivoted to ransomware operations and continues active campaigns against financial institutions.'
+      },
+      {
+        name: 'TA505',
+        alias: 'aka Evil Corp / Dudear',
+        type: 'criminal',
+        origin: 'Russia',
+        sophistication: 4,
+        motivations: ['Mass-scale fraud', 'Ransomware (WastedLocker, Dridex)', 'Money laundering infrastructure'],
+        primaryMotive: 'Mass-scale fraud',
+        ttps: ['High-volume malspam campaigns', 'Dridex banking trojan deployment', 'Ransomware (WastedLocker, Hades)', 'BEC targeting finance teams'],
+        targets: ['Corporate banking portals', 'Finance and payroll teams', 'Law firms handling financial transactions'],
+        example: 'Responsible for Dridex banking malware affecting millions globally. US Treasury sanctioned Evil Corp leadership in 2019. Continues operations under rebranded ransomware families.'
+      },
+      {
+        name: 'APT29',
+        alias: 'aka Cozy Bear / Midnight Blizzard',
+        type: 'nation-state',
+        origin: 'Russia (SVR)',
+        sophistication: 5,
+        motivations: ['Intelligence collection', 'Economic espionage', 'M&A intelligence'],
+        primaryMotive: 'Intelligence collection',
+        ttps: ['Spear phishing with OAuth token theft', 'Password spray against cloud environments', 'Supply chain compromise', 'Long-term persistent access without detection'],
+        targets: ['Investment banks (M&A data)', 'Central banks', 'Financial regulators', 'Pension and sovereign wealth funds'],
+        example: 'Targeted multiple financial institutions and regulators to gather economic intelligence. Compromised Microsoft corporate email in 2024 to access communications with government clients.'
+      }
+    ]
+  },
+  {
+    id: 'healthcare',
+    name: 'Healthcare',
+    icon: '🏥',
+    threatLevel: 'critical',
+    summary: 'Healthcare sits at the intersection of highly sensitive personal data, legacy infrastructure, and life-critical operations — making it uniquely vulnerable. Ransomware groups specifically target NHS Trusts and hospital networks knowing that operational pressure forces rapid payment decisions. Patient data commands premium prices on dark web markets. Medical device security remains a largely unresolved challenge.',
+    actors: [
+      {
+        name: 'Rhysida Ransomware Group',
+        alias: 'Ransomware-as-a-Service operator',
+        type: 'criminal',
+        origin: 'Eastern Europe',
+        sophistication: 3,
+        motivations: ['Ransomware payments', 'Data extortion', 'Double extortion'],
+        primaryMotive: 'Ransomware payments',
+        ttps: ['Phishing for initial access', 'Exploitation of VPN vulnerabilities', 'Double extortion (encrypt + publish)', 'Targeting of healthcare specifically for payment pressure'],
+        targets: ['NHS Trusts and hospital networks', 'Patient records systems', 'Medical imaging infrastructure', 'Pathology and lab systems'],
+        example: 'Attacked NHS Dumfries and Galloway and King\'s College Hospital NHS Foundation Trust in 2024, threatening to publish patient data including sensitive mental health records.'
+      },
+      {
+        name: 'Volt Typhoon',
+        alias: 'aka Bronze Silhouette / Vanguard Panda',
+        type: 'nation-state',
+        origin: 'China (PRC)',
+        sophistication: 5,
+        motivations: ['Pre-positioning for disruption', 'Critical infrastructure access', 'Long-term persistence'],
+        primaryMotive: 'Pre-positioning for disruption',
+        ttps: ['LOTL — living off the land techniques', 'Compromise of edge devices (routers, firewalls)', 'Avoidance of malware to evade detection', 'Slow and deliberate lateral movement'],
+        targets: ['Hospital network infrastructure', 'Healthcare supply chain', 'Medical research institutions', 'Vaccine/pharma IP'],
+        example: 'CISA advisory confirmed Volt Typhoon pre-positioned in US critical infrastructure including healthcare networks, believed to be preparation for potential conflict scenarios.'
+      },
+      {
+        name: 'TA416 / Mustang Panda',
+        alias: 'aka RedDelta / BRONZE PRESIDENT',
+        type: 'nation-state',
+        origin: 'China (PRC)',
+        sophistication: 4,
+        motivations: ['Medical IP theft', 'Vaccine research espionage', 'Public health intelligence'],
+        primaryMotive: 'Medical IP theft',
+        ttps: ['Spear phishing researchers via LinkedIn', 'PlugX malware deployment', 'Targeting of pandemic research specifically', 'Watering hole attacks on medical journals'],
+        targets: ['Pharmaceutical R&D', 'Vaccine research labs', 'Medical device manufacturers', 'WHO and health bodies'],
+        example: 'Extensively targeted COVID-19 vaccine research organisations in 2020–21. Continued campaigns against biomedical research institutions in Europe and US.'
+      },
+      {
+        name: 'Disgruntled Clinical Staff',
+        alias: 'Insider with EHR access',
+        type: 'insider',
+        origin: 'Internal',
+        sophistication: 2,
+        motivations: ['Financial gain (data sale)', 'Grievance', 'Celebrity/VIP snooping'],
+        primaryMotive: 'Financial gain',
+        ttps: ['Unauthorised access to electronic health records', 'Export of patient data to personal devices', 'Sale of records to fraud networks', 'Accessing records of high-profile individuals'],
+        targets: ['Electronic Health Record (EHR) systems', 'Patient PII', 'Prescription systems', 'VIP/celebrity patient records'],
+        example: 'Recurring pattern across NHS: staff prosecuted for accessing records of celebrities, domestic abuse victims, and selling patient data to personal injury lawyers and fraud networks.'
+      }
+    ]
+  },
+  {
+    id: 'energy',
+    name: 'Energy & Utilities',
+    icon: '⚡',
+    threatLevel: 'critical',
+    summary: 'Energy and utilities operators face nation-state threat actors as a primary concern given the critical infrastructure designation and potential for physical impact. The convergence of IT and OT (operational technology) networks creates unique attack paths to physical systems. Ransomware affecting energy companies generates disproportionate public and government pressure, making operators high-priority targets for criminal groups.',
+    actors: [
+      {
+        name: 'Sandworm / Seashell Blizzard',
+        alias: 'aka GRU Unit 74455 / Voodoo Bear',
+        type: 'nation-state',
+        origin: 'Russia (GRU)',
+        sophistication: 5,
+        motivations: ['Critical infrastructure disruption', 'Geopolitical coercion', 'Weapons testing'],
+        primaryMotive: 'Critical infrastructure disruption',
+        ttps: ['ICS/SCADA malware (Industroyer, Crash Override)', 'Wiper malware deployment (NotPetya, AcidRain)', 'Supply chain compromise of industrial software', 'OT network compromise via IT pivot'],
+        targets: ['Power grid control systems', 'SCADA/ICS infrastructure', 'Energy management systems', 'Substations and grid operators'],
+        example: 'Caused power blackouts in Ukraine in 2015 and 2016 using custom ICS malware. Deployed NotPetya in 2017 causing $10B+ in global damage. Continuously active against European energy infrastructure.'
+      },
+      {
+        name: 'XENOTIME / Triton Actors',
+        alias: 'aka TEMP.Veles (attributed to Russia CNIIHM)',
+        type: 'nation-state',
+        origin: 'Russia',
+        sophistication: 5,
+        motivations: ['Physical destruction capability', 'Safety system compromise', 'Geopolitical leverage'],
+        primaryMotive: 'Physical destruction capability',
+        ttps: ['TRITON/TRISIS malware targeting safety systems', 'Engineering workstation compromise', 'Slow reconnaissance over 1–2 years', 'Targeting of Safety Instrumented Systems (SIS)'],
+        targets: ['Petrochemical plants', 'Nuclear facilities', 'Safety Instrumented Systems', 'Engineering workstations'],
+        example: 'Deployed TRITON malware against a Middle Eastern petrochemical facility in 2017, targeting safety systems designed to prevent explosions. Only detected due to malware bug causing system fault.'
+      },
+      {
+        name: 'BlackCat/ALPHV (Energy Division)',
+        alias: 'Ransomware-as-a-Service group',
+        type: 'criminal',
+        origin: 'Eastern Europe',
+        sophistication: 4,
+        motivations: ['Ransomware payment', 'Data extortion', 'Maximum operational pressure'],
+        primaryMotive: 'Ransomware payment',
+        ttps: ['Initial access via exposed VPN appliances', 'IT-to-OT pivot via engineering workstations', 'Double extortion targeting operational continuity', 'Threatening public safety to force payment'],
+        targets: ['Energy company IT networks', 'Billing and customer systems', 'Pipeline management', 'Grid management systems'],
+        example: 'Affiliated groups responsible for Colonial Pipeline attack (2021, DarkSide) causing US fuel shortages and $4.4M ransom. Energy sector remains a priority target for criminal ransomware groups.'
+      },
+      {
+        name: 'Volt Typhoon',
+        alias: 'aka Bronze Silhouette',
+        type: 'nation-state',
+        origin: 'China (PRC)',
+        sophistication: 5,
+        motivations: ['Pre-positioning in critical infrastructure', 'Conflict preparation', 'Long-term persistence'],
+        primaryMotive: 'Pre-positioning for disruption',
+        ttps: ['LOTL techniques via legitimate admin tools', 'Compromise of OT-adjacent network devices', 'Slow persistent access over months to years', 'Avoiding all malware to evade detection'],
+        targets: ['Power generation facilities', 'Water treatment infrastructure', 'Grid management networks', 'Energy sector supply chains'],
+        example: 'US CISA/FBI joint advisory (2024) confirmed Volt Typhoon has maintained persistent access in US energy infrastructure for 5+ years, assessed as pre-positioning for potential disruption.'
+      }
+    ]
+  },
+  {
+    id: 'government',
+    name: 'Government',
+    icon: '🏛️',
+    threatLevel: 'critical',
+    summary: 'Government and public sector organisations are among the most targeted globally. Nation-state actors seek intelligence, policy insight, and the ability to influence decision-making. Criminal groups target agencies with ransomware knowing services cannot be suspended. Local government in particular is chronically under-resourced relative to the threat it faces, creating easy targets for opportunistic attackers.',
+    actors: [
+      {
+        name: 'APT29 / Cozy Bear',
+        alias: 'aka Midnight Blizzard / Nobelium',
+        type: 'nation-state',
+        origin: 'Russia (SVR)',
+        sophistication: 5,
+        motivations: ['Political intelligence', 'Diplomatic communications intercept', 'Election interference capability'],
+        primaryMotive: 'Political intelligence',
+        ttps: ['Spear phishing with credential harvesting', 'Supply chain via trusted software (SolarWinds)', 'OAuth and token-based authentication abuse', 'Cloud-native attacks on M365/Azure'],
+        targets: ['Foreign ministries', 'Defence departments', 'Election infrastructure', 'Think tanks and policy organisations'],
+        example: 'SolarWinds supply chain compromise (2020) compromised 18,000+ organisations including US Treasury, State Department, and multiple NATO governments. Continues active campaigns globally.'
+      },
+      {
+        name: 'APT28 / Fancy Bear',
+        alias: 'aka Forest Blizzard / Sofacy / GRU Unit 26165',
+        type: 'nation-state',
+        origin: 'Russia (GRU)',
+        sophistication: 5,
+        motivations: ['Military intelligence', 'Disinformation operations', 'Election interference'],
+        primaryMotive: 'Military intelligence',
+        ttps: ['Credential phishing via fake government portals', 'Zero-day exploitation', 'Hack-and-leak operations', 'Compromising political party infrastructure'],
+        targets: ['Defence ministries', 'NATO infrastructure', 'Political parties', 'Electoral commissions'],
+        example: 'Compromised Democratic National Committee (2016), French presidential campaign (2017), and German Bundestag. Ongoing campaigns against NATO member governments.'
+      },
+      {
+        name: 'LockBit (Government targeting)',
+        alias: 'Ransomware-as-a-Service operation',
+        type: 'criminal',
+        origin: 'Russia-adjacent (multinational affiliates)',
+        sophistication: 4,
+        motivations: ['Ransomware payment', 'Data extortion from public bodies', 'Maximum disruption for leverage'],
+        primaryMotive: 'Ransomware payment',
+        ttps: ['Exploitation of unpatched public-facing systems', 'RDP brute force on legacy infrastructure', 'Double extortion of public sector data', 'Targeting of under-resourced local councils'],
+        targets: ['Local council IT systems', 'NHS and public health bodies', 'Courts and justice systems', 'Police force infrastructure'],
+        example: 'Attacked Royal Mail (2023), Ion Trading, and numerous UK councils. Royal Mail attack disrupted international parcel delivery for weeks. Local councils including Gloucester and Hackney badly affected.'
+      },
+      {
+        name: 'Kimsuky / APT43',
+        alias: 'aka Emerald Sleet / Velvet Chollima',
+        type: 'nation-state',
+        origin: 'North Korea (RGB)',
+        sophistication: 4,
+        motivations: ['Policy intelligence', 'Sanctions evasion research', 'Nuclear programme intelligence'],
+        primaryMotive: 'Policy intelligence',
+        ttps: ['Spear phishing of think tanks and policy staff', 'Fake journalist / researcher personas', 'BEC against government procurement', 'Chrome extension malware'],
+        targets: ['Foreign policy ministries', 'Defence think tanks', 'UN sanctions committees', 'Academic policy researchers'],
+        example: 'Systematically targets government policy advisors, nuclear experts, and think tank researchers globally to inform DPRK decision-making on sanctions, diplomacy, and weapons programmes.'
+      }
+    ]
+  },
+  {
+    id: 'retail',
+    name: 'Retail & eCommerce',
+    icon: '🛒',
+    threatLevel: 'high',
+    summary: 'Retail faces a dual threat: criminal groups seeking payment card data and customer PII at scale, and opportunistic ransomware operators exploiting the sector\'s broad attack surface, seasonal pressure points (Black Friday), and thin IT margins. E-commerce platforms are targeted by web skimming groups. Large customer databases make retail attractive for credential stuffing attacks feeding fraud across other sectors.',
+    actors: [
+      {
+        name: 'Magecart / Group 5',
+        alias: 'Web skimming consortium',
+        type: 'criminal',
+        origin: 'Multinational (Eastern Europe / China)',
+        sophistication: 4,
+        motivations: ['Payment card theft at scale', 'Credential harvesting', 'Resale on dark web markets'],
+        primaryMotive: 'Payment card theft',
+        ttps: ['JavaScript skimmer injection into checkout pages', 'Compromise of third-party payment scripts', 'Supply chain attack via analytics/tag providers', 'Real-time card data exfiltration'],
+        targets: ['eCommerce checkout pages', 'Third-party payment providers', 'Tag management and analytics scripts', 'Ticketing and travel platforms'],
+        example: 'Compromised British Airways (500,000 cards), Ticketmaster, and hundreds of smaller retailers via third-party script injection. Continues to be the dominant threat to online payment infrastructure.'
+      },
+      {
+        name: 'FIN6',
+        alias: 'aka ITG08 / Skeletal Spider',
+        type: 'criminal',
+        origin: 'Eastern Europe',
+        sophistication: 4,
+        motivations: ['Payment card theft', 'POS system compromise', 'Ransomware (affiliate)'],
+        primaryMotive: 'Payment card theft',
+        ttps: ['Compromising POS terminals in physical retail', 'RAM scraping malware', 'Use of Ryuk and LockerGoga ransomware (pivoted)', 'Dark web card shop operations'],
+        targets: ['Point of sale infrastructure', 'Retail head office networks', 'Hospitality and F&B payment systems', 'Franchise retail networks'],
+        example: 'Stole millions of payment cards from US and European retailers. Later pivoted to ransomware operations targeting retail and hospitality companies.'
+      },
+      {
+        name: 'ShinyHunters',
+        alias: 'Data breach and extortion group',
+        type: 'criminal',
+        origin: 'France / multinational',
+        sophistication: 3,
+        motivations: ['Database theft', 'Extortion', 'Credential resale'],
+        primaryMotive: 'Database theft and extortion',
+        ttps: ['Exploiting misconfigured cloud storage buckets', 'Purchasing compromised credentials from info-stealer logs', 'Extorting companies before publishing data', 'Targeting of retail loyalty databases'],
+        targets: ['Customer loyalty programme databases', 'Cloud-hosted data warehouses', 'Retailer CRM systems', 'eCommerce user databases'],
+        example: 'Responsible for breaches at Tokopedia (91M records), Wishbone, Home Chef, and dozens of retailers. Targets poorly secured cloud databases and S3 buckets.'
+      },
+      {
+        name: 'Anonymous Sudan / hacktivists',
+        alias: 'Pro-Islamic hacktivist group',
+        type: 'hacktivist',
+        origin: 'Sudan / Russia-aligned',
+        sophistication: 2,
+        motivations: ['Political and religious protest', 'Disruption of Western commerce', 'Attention and notoriety'],
+        primaryMotive: 'Political disruption',
+        ttps: ['Volumetric DDoS against retail websites', 'Peak-period targeting (Black Friday, sales events)', 'Telegram-coordinated attacks', 'API layer attacks to maximise disruption'],
+        targets: ['Major retail websites during peak periods', 'Online payment processors', 'Retail customer service infrastructure'],
+        example: 'Targeted multiple major UK and US retailers during peak shopping periods. DDoS attacks timed to maximise financial and reputational impact during Black Friday and Christmas periods.'
+      }
+    ]
+  },
+  {
+    id: 'manufacturing',
+    name: 'Manufacturing',
+    icon: '🏭',
+    threatLevel: 'high',
+    summary: 'Manufacturing faces the convergence of IT and OT security as the most pressing challenge. Ransomware operators target manufacturers knowing that production line downtime costs are enormous — typically £50k–£500k per hour for large facilities. Nation-states target manufacturing for IP theft of defence and advanced technology. The sector is characterised by long equipment lifecycles creating significant unpatched legacy OT environments.',
+    actors: [
+      {
+        name: 'APT10 / Stone Panda',
+        alias: 'aka menuPass / Potassium',
+        type: 'nation-state',
+        origin: 'China (MSS)',
+        sophistication: 5,
+        motivations: ['Industrial IP theft', 'Made in China 2025 strategic goals', 'Defence manufacturing espionage'],
+        primaryMotive: 'Industrial IP theft',
+        ttps: ['Managed service provider (MSP) supply chain compromise', 'Custom malware (PlugX, RedLeaves)', 'Long-term dwell to exfiltrate R&D data', 'Spear phishing of engineers and designers'],
+        targets: ['Aerospace and defence manufacturers', 'Advanced manufacturing R&D', 'Automotive OEMs', 'Semiconductor manufacturers'],
+        example: 'Conducted decade-long campaign stealing IP from aviation, satellite, and manufacturing firms. US DOJ indicted APT10 members in 2018. Campaign continues under evolved TTPs.'
+      },
+      {
+        name: 'Black Basta',
+        alias: 'Ransomware-as-a-Service operation',
+        type: 'criminal',
+        origin: 'Eastern Europe (Conti successor)',
+        sophistication: 4,
+        motivations: ['Ransomware payment', 'OT disruption as pressure lever', 'Double extortion'],
+        primaryMotive: 'Ransomware payment',
+        ttps: ['Qakbot and other initial access brokers', 'Rapid lateral movement post-access', 'Targeting of OT-adjacent systems', 'Double extortion via leak site'],
+        targets: ['Manufacturing ERP systems', 'Production planning and MES', 'Engineering file servers', 'Industrial control networks'],
+        example: 'Attacked Rheinmetall (German defence manufacturer), Capita, and hundreds of manufacturers globally. Known for rapid encryption and aggressive extortion timelines.'
+      },
+      {
+        name: 'Winnti Group / APT41',
+        alias: 'aka Barium / Double Dragon',
+        type: 'nation-state',
+        origin: 'China (MSS)',
+        sophistication: 5,
+        motivations: ['IP theft', 'Financial crime (dual mandate)', 'Game and software industry targeting'],
+        primaryMotive: 'IP theft and financial crime',
+        ttps: ['Software supply chain compromise', 'Signed malware using stolen certificates', 'Targeting of R&D and patent databases', 'Simultaneous espionage and financial operations'],
+        targets: ['Technology manufacturers', 'Pharmaceutical manufacturers', 'Defence and aerospace supply chain', 'Video game companies (dual motivation)'],
+        example: 'Compromised CCleaner supply chain (2017, 2.27M installs). Targeted COVID-19 vaccine manufacturers. Operates dual espionage and financial crime mission simultaneously.'
+      },
+      {
+        name: 'Industrial Insider Threat',
+        alias: 'Engineer / contractor with OT access',
+        type: 'insider',
+        origin: 'Internal / contractor',
+        sophistication: 3,
+        motivations: ['Competitor recruitment', 'IP monetisation', 'Coercion', 'Grievance'],
+        primaryMotive: 'IP monetisation',
+        ttps: ['Copying of proprietary CAD/design files', 'Exfiltration via personal cloud storage', 'Accessing OT systems for sabotage', 'Sharing process formulas with competitors'],
+        targets: ['CAD and design file repositories', 'Process control documentation', 'Formula and recipe databases', 'OT/SCADA historian data'],
+        example: 'Multiple prosecuted cases of engineers leaving to competitors and taking design files, formulas, and manufacturing processes. Dow Chemical, Tesla, and numerous defence contractors affected.'
+      }
+    ]
+  },
+  {
+    id: 'legal',
+    name: 'Legal & Professional Services',
+    icon: '⚖️',
+    threatLevel: 'high',
+    summary: 'Law firms and professional services organisations hold some of the most sensitive data in existence — M&A plans, litigation strategy, client secrets, and personally sensitive information. They are targeted as a softer route to the high-value data of their clients. The sector has historically underinvested in cyber security relative to the sensitivity of data held, making it attractive to both state actors conducting economic espionage and criminal groups.',
+    actors: [
+      {
+        name: 'APT29 (M&A targeting)',
+        alias: 'aka Cozy Bear / Midnight Blizzard',
+        type: 'nation-state',
+        origin: 'Russia (SVR)',
+        sophistication: 5,
+        motivations: ['Economic intelligence', 'Pre-trade information', 'Client confidential data'],
+        primaryMotive: 'Economic intelligence via client data',
+        ttps: ['Spear phishing of senior partners', 'Long-term access to document management systems', 'Email compromise for deal intelligence', 'Targeting firms advising government clients'],
+        targets: ['Magic Circle law firms', 'M&A advisory firms', 'IP litigation specialists', 'Government contract advisors'],
+        example: 'FBI confirmed nation-state actors specifically target law firms handling M&A transactions for advance intelligence on deals. Multiple Am Law 100 firms confirmed compromised.'
+      },
+      {
+        name: 'GOLD SOUTHFIELD / REvil',
+        alias: 'aka Sodinokibi (dissolved, successors active)',
+        type: 'criminal',
+        origin: 'Russia',
+        sophistication: 4,
+        motivations: ['Ransomware payment', 'Sensitive data extortion', 'Client confidentiality leverage'],
+        primaryMotive: 'Ransomware and sensitive data extortion',
+        ttps: ['Exploitation of unpatched remote access', 'Double extortion threatening client data release', 'Targeting firms with high-profile clients for leverage', 'Auctioning stolen legal data'],
+        targets: ['Mid-tier law firms with corporate clients', 'Accountancy firms', 'HR and payroll service providers', 'Document management platforms'],
+        example: 'REvil targeted Grubman Shire law firm (2020), demanding $42M and threatening to release client data including A-list celebrities and politicians. Multiple UK law firms attacked in succession.'
+      },
+      {
+        name: 'Insider — Departing Associate',
+        alias: 'Lateral hire taking client data',
+        type: 'insider',
+        origin: 'Internal',
+        sophistication: 2,
+        motivations: ['Competitive advantage at new firm', 'Client poaching', 'Financial gain'],
+        primaryMotive: 'Client poaching / competitive advantage',
+        ttps: ['Bulk download of client documents before departure', 'Emailing files to personal accounts', 'Copying contact databases', 'Sharing matter files with competitor firms'],
+        targets: ['Client relationship databases (CRM)', 'Matter management systems', 'Document management repositories', 'Client contact and fee data'],
+        example: 'SRA disciplinary records show repeated cases of solicitors taking client files and contact databases when moving firms. Several resulted in criminal prosecution under Computer Misuse Act.'
+      },
+      {
+        name: 'BEC Fraud Groups',
+        alias: 'Invoice and payment redirection fraud',
+        type: 'criminal',
+        origin: 'West Africa / Eastern Europe',
+        sophistication: 3,
+        motivations: ['Payment diversion', 'Conveyancing fraud', 'Client account theft'],
+        primaryMotive: 'Payment diversion fraud',
+        ttps: ['Email thread hijacking for payment redirection', 'Conveyancing fraud targeting property completions', 'Spoofed partner email for wire transfer approval', 'Monitoring of email for payment triggers'],
+        targets: ['Client account transactions', 'Property conveyancing completions', 'Corporate deal payment flows', 'Accounts payable staff'],
+        example: 'Conveyancing fraud targeting law firms cost UK victims £100M+ in 2023. Criminal groups monitor legal email chains and redirect payment at completion. Several solicitors struck off for failures.'
+      }
+    ]
+  },
+  {
+    id: 'education',
+    name: 'Education',
+    icon: '🎓',
+    threatLevel: 'medium',
+    summary: 'The education sector — particularly universities — presents a unique threat profile combining nation-state interest in research IP with chronic underinvestment in security and an open, federated network culture hostile to security controls. Universities are specifically targeted for defence, pharmaceutical, and AI research. Schools face ransomware groups that know they lack IR capability and have limited ability to absorb disruption.',
+    actors: [
+      {
+        name: 'APT40 / Kryptonite Panda',
+        alias: 'aka BRONZE MOHAWK / Leviathan',
+        type: 'nation-state',
+        origin: 'China (MSS, Hainan)',
+        sophistication: 4,
+        motivations: ['Research IP theft', 'Defence technology intelligence', 'AI and quantum research'],
+        primaryMotive: 'Research IP theft',
+        ttps: ['Spear phishing of researchers via academic email', 'Exploitation of VPN appliances', 'Targeting of collaborative research platforms', 'Recruitment of insiders via fake research grants'],
+        targets: ['Defence research universities', 'Pharmaceutical and biomedical research', 'AI and ML research groups', 'Quantum computing research'],
+        example: 'US DOJ indicted APT40 members for targeting universities involved in naval research, aviation, and medical research. UK NCSC confirmed systematic targeting of UK universities.'
+      },
+      {
+        name: 'Vice Society / Rhysida',
+        alias: 'Education-focused ransomware groups',
+        type: 'criminal',
+        origin: 'Eastern Europe',
+        sophistication: 3,
+        motivations: ['Ransomware payment', 'Exploiting weak defences', 'Data extortion (student records)'],
+        primaryMotive: 'Ransomware against under-defended targets',
+        ttps: ['Phishing of staff and students', 'Exploitation of unpatched VPN and RDP', 'Targeting during exam periods for maximum pressure', 'Publishing student and HR data for leverage'],
+        targets: ['Student information systems', 'HR and payroll platforms', 'Research data repositories', 'School network infrastructure'],
+        example: 'Vice Society attacked multiple UK universities and US school districts. CISA advisory specifically warned of disproportionate Vice Society targeting of the education sector globally.'
+      },
+      {
+        name: 'Iranian APT groups (COBALT ILLUSION)',
+        alias: 'aka Charming Kitten / APT42',
+        type: 'nation-state',
+        origin: 'Iran (IRGC)',
+        sophistication: 3,
+        motivations: ['Academic researcher targeting', 'Sanctions research', 'Influence operations'],
+        primaryMotive: 'Researcher targeting and influence operations',
+        ttps: ['Fake conference and journal invitations', 'WhatsApp and Telegram social engineering', 'Credential phishing via fake webinar platforms', 'Targeting of Iran policy and nuclear experts'],
+        targets: ['Middle East policy researchers', 'Nuclear non-proliferation academics', 'Journalists covering Iran', 'Think tank and university researchers'],
+        example: 'Systematically targets academics and think tank researchers with fake interview and conference invitations to harvest credentials and monitor communications about Iranian policy.'
+      },
+      {
+        name: 'Student / Script Kiddie',
+        alias: 'Opportunistic internal attacker',
+        type: 'insider',
+        origin: 'Internal (student body)',
+        sophistication: 1,
+        motivations: ['Grade manipulation', 'Curiosity', 'Notoriety', 'Financial gain (exam paper sale)'],
+        primaryMotive: 'Grade manipulation / curiosity',
+        ttps: ['Credential stuffing against student portals', 'Phishing of administrative staff', 'Accessing exam paper repositories', 'Selling account access to other students'],
+        targets: ['Student records management systems', 'Exam paper repositories', 'Staff email accounts', 'Financial systems (fee manipulation)'],
+        example: 'Multiple prosecutions under Computer Misuse Act of students accessing grade systems. Growing market for stolen exam papers and assignment solutions drives commoditised attacks on university systems.'
+      }
+    ]
+  },
+  {
+    id: 'defence',
+    name: 'Defence & Aerospace',
+    icon: '🛡️',
+    threatLevel: 'critical',
+    summary: 'Defence and aerospace is the most heavily targeted sector for nation-state espionage. The objective is not financial gain but strategic advantage — stealing defence technology, undermining military capability, and understanding adversary intentions. The defence supply chain (primes and sub-contractors) provides a softer entry point than well-defended prime contractors. State actors invest years in persistent access to defence networks.',
+    actors: [
+      {
+        name: 'APT28 / Fancy Bear',
+        alias: 'aka Forest Blizzard / GRU Unit 26165',
+        type: 'nation-state',
+        origin: 'Russia (GRU)',
+        sophistication: 5,
+        motivations: ['Military technology theft', 'Weapons system intelligence', 'NATO capability assessment'],
+        primaryMotive: 'Military technology and capability intelligence',
+        ttps: ['Zero-day exploitation of defence contractor VPNs', 'Spear phishing of defence engineers', 'Targeting of unclassified networks adjacent to classified', 'Long-term persistent access to R&D networks'],
+        targets: ['Prime defence contractors', 'Weapons system developers', 'NATO procurement networks', 'Defence research establishments'],
+        example: 'CISA/NSA advisory confirmed APT28 compromising defence contractors for years accessing information on weapons development, military vehicles, aircraft, and missile systems.'
+      },
+      {
+        name: 'APT10 / Stone Panda',
+        alias: 'aka menuPass / Cicada',
+        type: 'nation-state',
+        origin: 'China (MSS)',
+        sophistication: 5,
+        motivations: ['Defence technology replication', 'Military modernisation', 'Aerospace IP theft'],
+        primaryMotive: 'Defence technology replication',
+        ttps: ['Supply chain via managed service providers', 'Targeting of cleared defence contractors (CDCs)', 'Long-duration campaigns (5–10 years)', 'Exfiltration of technical specifications and blueprints'],
+        targets: ['Aerospace manufacturers', 'Cleared defence contractors', 'Defence R&D laboratories', 'Satellite and space technology firms'],
+        example: 'US CISA advisory attributed theft of F-35 design data to Chinese state actors. Multiple cleared defence contractors confirmed compromised with technical specifications exfiltrated over years.'
+      },
+      {
+        name: 'Lazarus / Bureau 121',
+        alias: 'aka HIDDEN COBRA / Guardians of Peace',
+        type: 'nation-state',
+        origin: 'North Korea (RGB)',
+        sophistication: 5,
+        motivations: ['Military technology theft', 'Weapons programme support', 'Cryptocurrency for sanctions evasion'],
+        primaryMotive: 'Military technology for weapons development',
+        ttps: ['LinkedIn fake recruiter approach to engineers', 'Malicious job offer documents (Operation Dream Job)', 'Aerospace-specific malware (Manuscrypt)', 'Insider recruitment via financial incentives'],
+        targets: ['Aerospace and defence engineers', 'Nuclear technology researchers', 'Missile and propulsion specialists', 'Space launch technology firms'],
+        example: 'Operation Dream Job: fake LinkedIn recruiters target defence and aerospace engineers with job offers containing malware. Active since 2020, targeting engineers at BAE, Airbus, and US defence firms.'
+      },
+      {
+        name: 'Supply Chain Insider / Subcontractor',
+        alias: 'Cleared contractor with privileged access',
+        type: 'insider',
+        origin: 'Supply chain / contractor',
+        sophistication: 3,
+        motivations: ['Foreign intelligence recruitment', 'Financial gain', 'Ideological motivation'],
+        primaryMotive: 'Foreign intelligence recruitment',
+        ttps: ['Exfiltration of classified-adjacent material', 'Photograph of classified documents', 'Providing access credentials to foreign actors', 'Covert communication with foreign intelligence'],
+        targets: ['Classified programme documentation', 'Personnel security files', 'Weapons system specifications', 'Military operational planning'],
+        example: 'Multiple MI5/FBI cases of defence contractor employees recruited by foreign intelligence. Recent cases include MOD contractor data exposed in 2024 via supply chain compromise, affecting 270,000 personnel records.'
+      }
+    ]
+  }
+];
+
+// ── RENDER ──────────────────────────────────────────────────
+
+let activeSector = sectors[0].id;
+
+function renderSectorBar() {
+  const bar = document.getElementById('sectorBar');
+  bar.innerHTML = sectors.map(s => `
+    <button class="sector-btn ${s.id === activeSector ? 'active' : ''}" data-id="${s.id}">
+      <span class="s-icon">${s.icon}</span>${s.name}
+    </button>
+  `).join('');
+
+  bar.querySelectorAll('.sector-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeSector = btn.dataset.id;
+      renderSectorBar();
+      renderSectorContent();
+    });
+  });
+}
+
+function sophPips(level) {
+  return Array.from({length: 5}, (_, i) =>
+    `<div class="pip ${i < level ? 'filled' : ''}"></div>`
+  ).join('');
+}
+
+function sophLabel(level) {
+  return ['', 'Basic', 'Low', 'Moderate', 'Advanced', 'Expert'][level];
+}
+
+function renderSectorContent() {
+  const sector = sectors.find(s => s.id === activeSector);
+  const content = document.getElementById('sectorContent');
+
+  const tlClass = { critical: 'tl-critical', high: 'tl-high', medium: 'tl-medium' }[sector.threatLevel];
+  const tlLabel = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM' }[sector.threatLevel];
+
+  content.innerHTML = `
+    <div class="sector-overview">
+      <div>
+        <h2>${sector.icon} ${sector.name} — Threat Landscape</h2>
+        <p>${sector.summary}</p>
+      </div>
+      <div class="threat-level-badge ${tlClass}">
+        <div class="tl-label">Threat Level</div>
+        <div class="tl-value">${tlLabel}</div>
+      </div>
+    </div>
+
+    <div class="section-label">Threat Actor Profiles — ${sector.actors.length} identified actors</div>
+
+    <div class="actor-grid">
+      ${sector.actors.map((actor, i) => {
+        const color = ACTOR_COLORS[actor.type];
+        return `
+        <div class="actor-card" style="--actor-color:${color}; animation-delay:${i * 0.07}s">
+          <div class="actor-card-header" style="border-left-color:${color}">
+            <div>
+              <div class="actor-name">${actor.name}</div>
+              <div class="actor-alias">${actor.alias}</div>
+            </div>
+            <div class="actor-header-right">
+              <span class="actor-type-badge ${actor.type}" style="background:${color}1a; color:${color}; border:1px solid ${color}55">
+                ${actor.type.replace('-', ' ')}
+              </span>
+              <div class="sophistication">
+                <span class="soph-label">SOPHIST.</span>
+                <div class="soph-pips">${sophPips(actor.sophistication)}</div>
+                <span class="soph-label">${sophLabel(actor.sophistication)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="actor-card-body">
+            <div class="motivation-bar">
+              ${actor.motivations.map((m, mi) => `<span class="motive-tag ${mi === 0 ? 'primary' : ''}" style="${mi===0?'--actor-color:'+color:''}">${m}</span>`).join('')}
+            </div>
+            <div class="actor-section">
+              <h4>Tactics, Techniques & Procedures</h4>
+              <ul>${actor.ttps.map(t => `<li>${t}</li>`).join('')}</ul>
+            </div>
+            <div class="actor-section">
+              <h4>Target Assets</h4>
+              <ul>${actor.targets.map(t => `<li>${t}</li>`).join('')}</ul>
+            </div>
+          </div>
+          <div class="actor-card-footer">
+            <span class="footer-label">Example</span>
+            <span class="footer-text">${actor.example}</span>
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+renderSectorBar();
+renderSectorContent();
+</script>
+</body>
+</html>

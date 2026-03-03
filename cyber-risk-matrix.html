@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Incident Risk Matrix</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #58a6ff;
+
+    --c-low-text: #3fb950;
+    --c-low-bg: rgba(35,134,54,0.15);
+    --c-low-border: rgba(35,134,54,0.4);
+
+    --c-medium-text: #d29922;
+    --c-medium-bg: rgba(158,106,3,0.15);
+    --c-medium-border: rgba(158,106,3,0.4);
+
+    --c-high-text: #f0883e;
+    --c-high-bg: rgba(189,86,29,0.18);
+    --c-high-border: rgba(189,86,29,0.45);
+
+    --c-critical-text: #ff7b72;
+    --c-critical-bg: rgba(182,35,36,0.2);
+    --c-critical-border: rgba(182,35,36,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+  }
+
+  /* HEADER */
+  .page-header {
+    max-width: 1180px;
+    margin: 0 auto 36px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .page-header .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-dot.low      { background: var(--c-low-text); }
+  .legend-dot.medium   { background: var(--c-medium-text); }
+  .legend-dot.high     { background: var(--c-high-text); }
+  .legend-dot.critical { background: var(--c-critical-text); }
+
+  /* WRAP */
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    margin-top: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* HEATMAP */
+  .heatmap-outer {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .y-axis-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding-right: 14px;
+    width: 36px;
+    flex-shrink: 0;
+  }
+
+  .heatmap-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .x-axis-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-align: center;
+    padding-bottom: 12px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 130px repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .col-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    padding: 6px 4px 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    letter-spacing: 0.2px;
+  }
+
+  .row-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 12px 8px 0;
+    gap: 3px;
+    border-right: 1px solid var(--border);
+  }
+
+  .rh-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .rh-sub {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* CELL */
+  .cell {
+    border-radius: 7px;
+    min-height: 108px;
+    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    cursor: default;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    border: 1px solid transparent;
+    position: relative;
+  }
+
+  .cell:hover {
+    transform: scale(1.05);
+    z-index: 20;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.75);
+    filter: brightness(1.18);
+  }
+
+  .cell.low      { background: var(--c-low-bg);      border-color: var(--c-low-border); }
+  .cell.medium   { background: var(--c-medium-bg);   border-color: var(--c-medium-border); }
+  .cell.high     { background: var(--c-high-bg);     border-color: var(--c-high-border); }
+  .cell.critical { background: var(--c-critical-bg); border-color: var(--c-critical-border); }
+  .cell.empty    { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.04); }
+
+  .risk-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    display: inline-block;
+    align-self: flex-start;
+  }
+
+  .cell.low .risk-pill      { background: rgba(63,185,80,0.15);   color: var(--c-low-text); }
+  .cell.medium .risk-pill   { background: rgba(210,153,34,0.15);  color: var(--c-medium-text); }
+  .cell.high .risk-pill     { background: rgba(240,136,62,0.15);  color: var(--c-high-text); }
+  .cell.critical .risk-pill { background: rgba(255,123,114,0.15); color: var(--c-critical-text); }
+
+  .cell-incidents { display: flex; flex-direction: column; gap: 3px; }
+
+  .incident-tag {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(230,237,243,0.92);
+    line-height: 1.3;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .incident-tag::before {
+    content: '›';
+    font-size: 13px;
+    margin-top: -1px;
+    flex-shrink: 0;
+  }
+
+  .cell.low .incident-tag::before      { color: var(--c-low-text); }
+  .cell.medium .incident-tag::before   { color: var(--c-medium-text); }
+  .cell.high .incident-tag::before     { color: var(--c-high-text); }
+  .cell.critical .incident-tag::before { color: var(--c-critical-text); }
+
+  /* TABLE */
+  .incident-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .incident-table thead tr {
+    border-bottom: 2px solid var(--border);
+  }
+
+  .incident-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .incident-table th.center { text-align: center; }
+
+  .incident-table tbody tr {
+    border-bottom: 1px solid rgba(48,54,61,0.7);
+    transition: background 0.1s;
+  }
+
+  .incident-table tbody tr:hover { background: var(--surface2); }
+
+  .incident-table td { padding: 11px 14px; vertical-align: middle; }
+
+  .td-name { font-weight: 600; color: var(--text); font-size: 13px; }
+
+  .td-risk { text-align: center; }
+
+  .risk-chip {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+
+  .risk-chip.low      { background: var(--c-low-bg);      color: var(--c-low-text);      border: 1px solid var(--c-low-border); }
+  .risk-chip.medium   { background: var(--c-medium-bg);   color: var(--c-medium-text);   border: 1px solid var(--c-medium-border); }
+  .risk-chip.high     { background: var(--c-high-bg);     color: var(--c-high-text);     border: 1px solid var(--c-high-border); }
+  .risk-chip.critical { background: var(--c-critical-bg); color: var(--c-critical-text); border: 1px solid var(--c-critical-border); }
+
+  .bar-cell { min-width: 150px; }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .bar-row:last-child { margin-bottom: 0; }
+
+  .bar-key {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    width: 32px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .bar-fill.prob   { background: linear-gradient(90deg, #1f6feb, var(--accent)); }
+  .bar-fill.impact { background: linear-gradient(90deg, #8b1a1a, var(--c-critical-text)); }
+
+  .bar-pct {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .td-note {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+    max-width: 280px;
+  }
+
+  /* FOOTER */
+  .page-footer {
+    max-width: 1180px;
+    margin: 48px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>Cyber Incident Risk Matrix</h1>
+    <div class="subtitle">// probability × impact — 2025 threat landscape</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot low"></div> Low</div>
+    <div class="legend-item"><div class="legend-dot medium"></div> Medium</div>
+    <div class="legend-item"><div class="legend-dot high"></div> High</div>
+    <div class="legend-item"><div class="legend-dot critical"></div> Critical</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-label">Heat Map — hover cells to highlight</div>
+
+  <div class="heatmap-outer">
+    <div class="y-axis-label">← Probability →</div>
+    <div class="heatmap-inner">
+      <div class="x-axis-label">← Impact →</div>
+      <div class="heatmap-grid">
+
+        <!-- Column headers -->
+        <div></div>
+        <div class="col-header">Negligible</div>
+        <div class="col-header">Minor</div>
+        <div class="col-header">Moderate</div>
+        <div class="col-header">Major</div>
+        <div class="col-header">Catastrophic</div>
+
+        <!-- ROW: Almost Certain -->
+        <div class="row-header">
+          <span class="rh-title">Almost Certain</span>
+          <span class="rh-sub">&gt;80%</span>
+        </div>
+        <div class="cell medium">
+          <span class="risk-pill">Medium</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Spam</div>
+          </div>
+        </div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Social Engineering</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Phishing</div>
+            <div class="incident-tag">Credential Theft</div>
+            <div class="incident-tag">BEC</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Malware</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">—</div>
+          </div>
+        </div>
+
+        <!-- ROW: Likely -->
+        <div class="row-header">
+          <span class="rh-title">Likely</span>
+          <span class="rh-sub">60–80%</span>
+        </div>
+        <div class="cell low">
+          <span class="risk-pill">Low</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Cryptojacking</div>
+          </div>
+        </div>
+        <div class="cell medium">
+          <span class="risk-pill">Medium</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">DDoS</div>
+          </div>
+        </div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Web App Attacks</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Unpatched Vuln</div>
+            <div class="incident-tag">Cloud Misconfig</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">—</div>
+          </div>
+        </div>
+
+        <!-- ROW: Possible -->
+        <div class="row-header">
+          <span class="rh-title">Possible</span>
+          <span class="rh-sub">30–60%</span>
+        </div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell medium">
+          <span class="risk-pill">Medium</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Accidental Exposure</div>
+            <div class="incident-tag">Device Theft</div>
+          </div>
+        </div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">MitM</div>
+          </div>
+        </div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Insider Threat</div>
+            <div class="incident-tag">3rd Party Breach</div>
+            <div class="incident-tag">DNS Hijacking</div>
+          </div>
+        </div>
+        <div class="cell critical">
+          <span class="risk-pill">Critical</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Ransomware</div>
+            <div class="incident-tag">Supply Chain</div>
+          </div>
+        </div>
+
+        <!-- ROW: Unlikely -->
+        <div class="row-header">
+          <span class="rh-title">Unlikely</span>
+          <span class="rh-sub">10–30%</span>
+        </div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell medium"><span class="risk-pill">Medium</span></div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Zero-Day Exploit</div>
+          </div>
+        </div>
+        <div class="cell high">
+          <span class="risk-pill">High</span>
+          <div class="cell-incidents">
+            <div class="incident-tag">Nation-State / APT</div>
+          </div>
+        </div>
+
+        <!-- ROW: Rare -->
+        <div class="row-header">
+          <span class="rh-title">Rare</span>
+          <span class="rh-sub">&lt;10%</span>
+        </div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell low"><span class="risk-pill">Low</span></div>
+        <div class="cell medium"><span class="risk-pill">Medium</span></div>
+        <div class="cell high"><span class="risk-pill">High</span></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- INCIDENT TABLE -->
+  <div class="section-label">Full Incident Breakdown</div>
+
+  <table class="incident-table">
+    <thead>
+      <tr>
+        <th>Incident</th>
+        <th class="center">Risk Level</th>
+        <th>Probability / Impact</th>
+        <th>Key Reasoning</th>
+      </tr>
+    </thead>
+    <tbody id="incidentTableBody"></tbody>
+  </table>
+
+</div>
+
+<div class="page-footer">
+  <span>// cyber incident risk matrix — v2.1</span>
+  <span>classifications based on industry-standard risk frameworks</span>
+</div>
+
+<script>
+const incidents = [
+  { name: "Phishing / Spear Phishing",        risk: "critical", prob: 95, impact: 75, note: "Primary entry point for most serious breaches; gateway to ransomware, BEC, and lateral movement" },
+  { name: "Credential Theft / Account Takeover", risk: "critical", prob: 90, impact: 80, note: "Enables lateral movement, data theft, and fraud across the estate" },
+  { name: "Malware / Trojan Infection",        risk: "critical", prob: 85, impact: 80, note: "Broad damage potential; often the delivery mechanism for ransomware" },
+  { name: "Social Engineering",                risk: "high",     prob: 82, impact: 55, note: "Common but frequently intercepted; impact varies widely by target and method" },
+  { name: "Business Email Compromise (BEC)",   risk: "critical", prob: 78, impact: 80, note: "Direct financial fraud via trusted email channels; average loss £30k+" },
+  { name: "Unpatched Vulnerability Exploit",   risk: "critical", prob: 76, impact: 82, note: "If successfully exploited, typically leads to full system or network compromise" },
+  { name: "Cloud Misconfiguration",            risk: "critical", prob: 75, impact: 82, note: "Extremely common mistake; can publicly expose massive data stores with no breach required" },
+  { name: "DDoS Attack",                       risk: "medium",   prob: 72, impact: 45, note: "Disruptive but rarely destructive; operations usually recover within hours" },
+  { name: "Web App Attacks (SQLi / XSS)",      risk: "high",     prob: 70, impact: 60, note: "Constant probing of web surfaces; impact depends on whether defences hold" },
+  { name: "Cryptojacking",                     risk: "low",      prob: 50, impact: 22, note: "Drains compute resources and increases costs; rarely causes direct data or operational harm" },
+  { name: "Accidental Data Exposure",          risk: "medium",   prob: 50, impact: 50, note: "Frequently triggers regulatory consequences and reputational damage" },
+  { name: "Insider Threat / Data Exfiltration", risk: "high",    prob: 45, impact: 82, note: "Hard to detect early; deliberate insider cases can be catastrophic and prolonged" },
+  { name: "Physical Device Theft / Loss",      risk: "medium",   prob: 45, impact: 48, note: "Full-disk encryption significantly reduces impact; risk varies by device sensitivity" },
+  { name: "Third-Party / Vendor Breach",       risk: "high",     prob: 45, impact: 78, note: "You inherit their breach with limited control; supply chain visibility is key" },
+  { name: "Ransomware Attack",                 risk: "critical", prob: 40, impact: 95, note: "Typically the outcome of phishing or unpatched vulns; operationally devastating when it lands" },
+  { name: "Supply Chain Compromise",           risk: "critical", prob: 35, impact: 95, note: "Low frequency but enormous blast radius; SolarWinds and MOVEit demonstrated the scale" },
+  { name: "Man-in-the-Middle (MitM)",          risk: "high",     prob: 35, impact: 65, note: "Largely mitigated by TLS/mTLS; still serious if network traffic is successfully intercepted" },
+  { name: "DNS Hijacking",                     risk: "high",     prob: 30, impact: 75, note: "Redirects all traffic silently; difficult to detect and can persist for days" },
+  { name: "Zero-Day Exploit",                  risk: "high",     prob: 20, impact: 92, note: "No patch exists at time of attack; no signature-based defence is possible" },
+  { name: "Nation-State / APT Attack",         risk: "high",     prob: 15, impact: 95, note: "Rare for most organisations; extremely sophisticated, patient, and well-resourced" },
+];
+
+const tbody = document.getElementById('incidentTableBody');
+
+incidents.forEach(inc => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="td-name">${inc.name}</td>
+    <td class="td-risk"><span class="risk-chip ${inc.risk}">${inc.risk}</span></td>
+    <td class="bar-cell">
+      <div class="bar-row">
+        <span class="bar-key">PROB</span>
+        <div class="bar-track"><div class="bar-fill prob" data-w="${inc.prob}" style="width:0%"></div></div>
+        <span class="bar-pct">${inc.prob}%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-key">IMP</span>
+        <div class="bar-track"><div class="bar-fill impact" data-w="${inc.impact}" style="width:0%"></div></div>
+        <span class="bar-pct">${inc.impact}%</span>
+      </div>
+    </td>
+    <td class="td-note">${inc.note}</td>
+  `;
+  tbody.appendChild(tr);
+});
+
+setTimeout(() => {
+  document.querySelectorAll('.bar-fill').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+  });
+}, 150);
+</script>
+</body>
+</html>
